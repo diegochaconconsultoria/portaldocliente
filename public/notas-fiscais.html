@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="notas-fiscais.css">
+</head>
+<body>
+    <!-- CABEÇALHO -->
+
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li><a href="/pedidos"><i class="icon-pedidos"></i> Pedidos</a></li>
+                    <li class="active"><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+             <!-- Botão de logout no menu lateral -->
+             <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section id="notas-section" class="notas-section">
+                <h2>Consulta de Notas Fiscais</h2>
+                
+                <div class="filtro-container">
+                    <h3>Filtros de Busca</h3>
+                    <form id="notasFilterForm" class="filtro-form">
+                        <div class="filtro-row">
+                            <div class="filtro-item todos-toggle">
+                                <label for="todosToggle">Todas as Notas:</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="todosToggle" class="toggle-input">
+                                    <label for="todosToggle" class="toggle-label">
+                                        <span class="toggle-option">Não</span>
+                                        <span class="toggle-option">Sim</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="filtro-row">
+                            <div class="filtro-item">
+                                <label for="dataInicio">Data De:</label>
+                                <input type="date" id="dataInicio" class="filtro-input">
+                            </div>
+                            <div class="filtro-item">
+                                <label for="dataFim">Data Até:</label>
+                                <input type="date" id="dataFim" class="filtro-input">
+                            </div>
+                        </div>
+                        
+                        <div class="filtro-row">
+                            <div class="filtro-item">
+                                <label for="numeroNota">Número da Nota Fiscal:</label>
+                                <input type="text" id="numeroNota" placeholder="Número da nota fiscal" class="filtro-input">
+                            </div>
+                        </div>
+                        
+                        <div class="filtro-actions">
+                            <button type="button" id="buscarBtn" class="btn-primary">Buscar Notas</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Indicador de carregamento -->
+                <div id="loadingIndicator" class="loading-indicator hidden">
+                    Carregando notas fiscais, aguarde...
+                </div>
+                
+                <!-- Mensagem quando não há resultados -->
+                <div id="mensagemSemResultados" class="mensagem-sem-resultados hidden">
+                    Nenhuma nota fiscal encontrada com os filtros informados.
+                </div>
+                
+                <!-- Tabela de resultados -->
+                <div id="tabelaNotas" class="tabela-container hidden">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Emissão</th>
+                                <th>Operação</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaNotasBody">
+                            <!-- Linhas serão preenchidas via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">22/04/2025 - 10:15</span></p>
+    </footer>
+
+    <!-- Overlay de processamento de nota fiscal -->
+    <div id="overlay-processando-nf" class="overlay-mensagem hidden" style="display: none;">
+        <div class="overlay-conteudo">
+            <div class="loading-spinner"></div>
+            <p>Processando nota fiscal, aguarde...</p>
+        </div>
+    </div>
+
+    <!-- Overlay de sucesso -->
+    <div id="overlay-sucesso-nf" class="overlay-mensagem hidden" style="display: none;">
+        <div class="overlay-conteudo sucesso">
+            <div class="icone-sucesso">✓</div>
+            <p>Nota Fiscal baixada com sucesso!</p>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script src="notas-fiscais.js"></script>
+</body>
+</html>
+```

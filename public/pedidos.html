@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="pedidos.css">
+</head>
+
+<body>
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li class="active"><a href="/pedidos"><i class="icon-pedidos"></i> Pedidos</a></li>
+                    <li><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+            <!-- Botão de logout no menu lateral -->
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section id="pedidos-section" class="pedidos-section">
+                <h2>Consulta de Pedidos</h2>
+
+                <div class="filtro-container">
+                    <h3>Filtros de Busca</h3>
+                    <form id="pedidosFilterForm" class="filtro-form">
+                        <div class="filtro-row">
+                            <div class="filtro-item todos-toggle">
+                                <label for="todosToggle">Todos os Pedidos:</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="todosToggle" class="toggle-input">
+                                    <label for="todosToggle" class="toggle-label">
+                                        <span class="toggle-option">Não</span>
+                                        <span class="toggle-option">Sim</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filtro-row">
+                            <div class="filtro-item">
+                                <label for="dataInicio">Data De:</label>
+                                <input type="date" id="dataInicio" class="filtro-input">
+                            </div>
+                            <div class="filtro-item">
+                                <label for="dataFim">Data Até:</label>
+                                <input type="date" id="dataFim" class="filtro-input">
+                            </div>
+                        </div>
+
+                        <div class="filtro-row">
+                            <div class="filtro-item">
+                                <label for="proposta">Proposta:</label>
+                                <input type="text" id="proposta" placeholder="Número da proposta" class="filtro-input">
+                            </div>
+                            <div class="filtro-item">
+                                <label for="pedido">Pedido:</label>
+                                <input type="text" id="pedido" placeholder="Número do pedido" class="filtro-input">
+                            </div>
+                        </div>
+
+                        <div class="filtro-actions">
+                            <button type="button" id="buscarBtn" class="btn-primary">Buscar Pedidos</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Indicador de carregamento -->
+                <div id="loadingIndicator" class="loading-indicator hidden">
+                    Carregando pedidos, aguarde...
+                </div>
+
+                <!-- Mensagem quando não há resultados -->
+                <div id="mensagemSemResultados" class="mensagem-sem-resultados hidden">
+                    Nenhum pedido encontrado com os filtros informados.
+                </div>
+
+                <!-- Tabela de resultados -->
+                <div id="tabelaPedidos" class="tabela-container hidden">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Proposta</th>
+                                <th>Data</th>
+                                <th>Operação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaPedidosBody">
+                            <!-- Linhas serão preenchidas via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">22/04/2025 - 10:15</span></p>
+    </footer>
+
+    <script src="dashboard.js"></script>
+    <script src="pedidos.js"></script>
+
+
+    <div id="overlay-processando-nf" class="overlay-mensagem hidden style=" display: none;">
+        <div class="overlay-conteudo">
+            <div class="loading-spinner"></div>
+            <p>Processando nota fiscal, aguarde...</p>
+        </div>
+    </div>
+
+    <!-- Overlay de sucesso -->
+    <div id="overlay-sucesso-nf" class="overlay-mensagem hidden style=" display: none;">
+        <div class="overlay-conteudo sucesso">
+            <div class="icone-sucesso">✓</div>
+            <p>Nota Fiscal baixada com sucesso!</p>
+        </div>
+    </div>
+
+
+</body>
+
+</html>
+
+
+
+<!-- Modal de carregamento -->
+<div id="modalLoading" class="modal hidden">
+    <div class="modal-content modal-loading">
+        <div class="loading-spinner"></div>
+        <p>Carregando detalhes do pedido...</p>
+    </div>
+</div>
+
+<!-- Modal de detalhes do pedido -->
+<div id="modalDetalhes" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Detalhes do Pedido <span id="detalhe-numeroPedido"></span></h3>
+            <button class="btn-fechar" onclick="fecharModalDetalhes()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="card-info">
+                <div class="info-header">
+                    <h4>Informações do Pedido</h4>
+                </div>
+                <div class="info-content">
+                    <div class="info-row">
+                        <div class="info-column">
+                            <label>Proposta:</label>
+                            <span id="detalhe-proposta">-</span>
+                        </div>
+                        <div class="info-column">
+                            <label>Valor Total:</label>
+                            <span id="detalhe-valorTotal">-</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-column">
+                            <label>Transportadora:</label>
+                            <span id="detalhe-transportadora">-</span>
+                        </div>
+                        <div class="info-column">
+                            <label>Tipo de Operação:</label>
+                            <span id="detalhe-tipoOperacao">-</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-column full">
+                            <label>Chave de Acesso:</label>
+                            <span id="detalhe-chaveAcesso">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-info">
+                <div class="info-header">
+                    <h4>Status do Pedido</h4>
+                </div>
+                <div class="info-content">
+                    <div class="status-tracker">
+                        <div class="status-item" id="status-conferido">
+                            <div class="status-icon">
+                                <i class="icon-check">✓</i>
+                            </div>
+                            <div class="status-label">Conferido</div>
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-item" id="status-producaoIniciada">
+                            <div class="status-icon">
+                                <i class="icon-production">⚙</i>
+                            </div>
+                            <div class="status-label">Produção Iniciada</div>
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-item" id="status-producaoConcluida">
+                            <div class="status-icon">
+                                <i class="icon-complete">✓</i>
+                            </div>
+                            <div class="status-label">Produção Concluída</div>
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-item" id="status-faturado">
+                            <div class="status-icon">
+                                <i class="icon-invoice">$</i>
+                            </div>
+                            <div class="status-label">Faturado</div>
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-item" id="status-expedido">
+                            <div class="status-icon">
+                                <i class="icon-truck">🚚</i>
+                            </div>
+                            <div class="status-label">Expedido</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="footer-buttons">
+                <button id="btn-visualizar-producao" class="btn-primary hidden" onclick="visualizarProducao(this.getAttribute('data-pedido'))">
+                    <i class="icon-production"></i> Visualizar Produção
+                </button>
+                <button id="btn-download-nf" class="btn-primary hidden" onclick="downloadNotaFiscal()">
+                    <i class="icon-download"></i> Baixar Nota Fiscal
+                </button>
+                <!-- Novo botão para relatório de montagem -->
+                <button id="btn-relatorio-montagem" class="btn-primary hidden" onclick="visualizarRelatorioMontagem()">
+                    <i class="icon-document"></i> Visualizar relatório de entrega e montagem
+                </button>
+
+                <button id="btn-relatorio-fechar" class="btn-primary" onclick="fecharModalDetalhes()">Fechar</button>
+                <!--<button class="btn-secundario" onclick="fecharModalDetalhes()">Fechar</button>-->
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <!-- Definição dos gradientes -->
+  <defs>
+    <!-- Gradiente de fundo principal - cinza com toque vermelho sutil -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8f8f8" />
+      <stop offset="50%" stop-color="#eaeaea" />
+      <stop offset="100%" stop-color="#e0e0e0" />
+    </linearGradient>
+    
+    <!-- Gradiente de acento vermelho sutil (cor primária) -->
+    <radialGradient id="accentGradient" cx="70%" cy="30%" r="70%" fx="70%" fy="30%">
+      <stop offset="0%" stop-color="#d8183e" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#d8183e" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Fundo com gradiente -->
+  <rect width="100%" height="100%" fill="url(#mainGradient)"/>
+  
+  <!-- Camada de acento com a cor primária -->
+  <rect width="100%" height="100%" fill="url(#accentGradient)"/>
+  
+  <!-- Linha decorativa sutil no topo -->
+  <rect x="0" y="0" width="100%" height="5" fill="#d8183e" opacity="0.1"/>
+</svg>

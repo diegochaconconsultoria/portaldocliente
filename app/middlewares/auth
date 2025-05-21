@@ -1,0 +1,18 @@
+/**
+ * Middleware de autenticação para as rotas da API
+ */
+
+// Verificar se o usuário está autenticado
+const autenticacaoRequerida = (req, res, next) => {
+    if (!req.session.usuario) {
+        return res.status(401).json({ 
+            message: 'Usuário não autenticado',
+            error: 'Faça login para acessar este recurso'
+        });
+    }
+    next();
+};
+
+module.exports = {
+    autenticacaoRequerida
+};

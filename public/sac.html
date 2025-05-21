@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="sac.css">
+</head>
+<body>
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li><a href="/pedidos"><i class="icon-pedidos"></i> Pedidos</a></li>
+                    <li><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li class="active"><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+             <!-- Botão de logout no menu lateral -->
+             <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section id="sac-section" class="sac-section">
+                <h2>Serviço de Atendimento ao Cliente</h2>
+                
+                <div class="sac-intro">
+                    <p>Prezado cliente, estamos aqui para ajudá-lo! Por favor, preencha os campos abaixo com as informações necessárias para que possamos compreender melhor sua solicitação e oferecer o melhor suporte possível.</p>
+                    <p>Após enviar sua solicitação, nossa equipe entrará em contato com você o mais rápido possível. Agradecemos pela confiança e estamos à disposição para atendê-lo.</p>
+                </div>
+                
+                <form id="sacForm" class="sac-form">
+                    <div class="form-group">
+                        <label for="documento">Nota Fiscal, Proposta ou Pedido:</label>
+                        <input type="text" id="documento" name="documento" placeholder="Ex: NF 12345 ou Pedido 9876" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="observacao">Observações sobre sua solicitação:</label>
+                        <textarea id="observacao" name="observacao" rows="5" placeholder="Descreva detalhadamente sua solicitação" class="form-control"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fileUpload">Anexar Arquivos:</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="fileUpload" name="fileUpload" class="file-input" multiple>
+                            <label for="fileUpload" class="file-label">
+                                <i class="icon-upload"></i> Selecionar Arquivos
+                            </label>
+                            <span class="file-info">Formatos aceitos: PDF, JPG, PNG (máx. 10MB)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="file-list-container">
+                        <h3>Arquivos Anexados:</h3>
+                        <ul id="fileList" class="file-list">
+                            <li class="empty-list">Nenhum arquivo anexado</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">Enviar Solicitação</button>
+                    </div>
+                </form>
+                
+                <!-- Mensagem de confirmação (inicialmente oculta) -->
+                <div id="successMessage" class="success-message" style="display:none;">
+                    <div class="success-icon">✓</div>
+                    <h3>Solicitação Enviada com Sucesso!</h3>
+                    <p>Sua solicitação foi recebida e será tratada por nossa equipe.</p>
+                    <p>Um e-mail de confirmação foi enviado para <span id="userEmail">teste@mvk.com.br</span>.</p>
+                    <p>Obrigado por utilizar nosso canal de atendimento!</p>
+                    <button id="newRequestBtn" class="btn-new-request">Nova Solicitação</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">17/04/2025 - 17:38</span></p>
+    </footer>
+
+    <script src="sac.js"></script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+:root {
+    --primary-color: #d8183e;
+    --primary-hover: #b01433;
+    --secondary-color: #333;
+    --bg-light: #f5f5f5;
+    --bg-white: #ffffff;
+    --border-color: #ddd;
+    --text-color: #333;
+    --text-light: #777;
+    --header-height: 48px; /* Altura do cabeçalho para referência */
+    --footer-height: 35px; /* Altura do rodapé para referência */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Cabeçalho */
+.main-header {
+    background-color: var(--bg-white);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 8px 20px;
+    width: 100%;
+    height: var(--header-height);
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.header-content {
+    display: flex;
+    justify-content: center; /* Alterado de space-between para center */
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-container img {
+    height: 32px;
+    margin-right: 15px;
+}
+
+.logo-container h1 {
+    color: var(--primary-color);
+    font-size: 18px;
+    margin: 0;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.user-info span {
+    margin-right: 15px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.btn-logout {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 13px;
+}
+
+.btn-logout:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Container principal que contém o menu e o conteúdo */
+.page-wrapper {
+    display: flex;
+    flex: 1;
+    margin-top: 0; /* Removido o espaçamento para o cabeçalho */
+    margin-bottom: var(--footer-height); /* Espaço para o rodapé fixo */
+}
+
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        position: relative;
+        height: auto;
+        max-height: none;
+        overflow-y: visible;
+    }
+    
+    .sidebar-logo {
+        flex-direction: row;
+        justify-content: center;
+        padding: 10px;
+    }
+    
+    .sidebar-logo img {
+        height: 40px;
+        margin-bottom: 0;
+        margin-right: 10px;
+    }
+    
+    .main-nav ul {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .main-nav li {
+        width: auto;
+        border-bottom: none;
+    }
+    
+    .main-nav li a {
+        padding: 10px 15px;
+        text-align: center;
+    }
+    
+    .sidebar-footer {
+        position: relative;
+        margin-top: 10px;
+        padding: 10px;
+    }
+    
+    .content {
+        margin-left: 0;
+    }
+}
+
+
+/* Sidebar - Menu lateral */
+.sidebar {
+    width: 240px;
+    background-color: var(--secondary-color);
+    color: white;
+    position: fixed;
+    left: 0;
+    top: 0; /* Ajustado para começar do topo */
+    bottom: var(--footer-height); /* Para não sobrepor o rodapé */
+    overflow-y: auto;
+    z-index: 900;
+    padding-bottom: 60px; /* Espaço para o botão de sair */
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-logo {
+    padding: 15px;
+    background-color: var(--secondary-color);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.sidebar-logo img {
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+.sidebar-logo h1 {
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.main-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.main-nav li {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.main-nav li a {
+    display: block;
+    padding: 15px 20px;
+    color: white;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.main-nav li a:hover,
+.main-nav li.active a {
+    background-color: rgba(216, 24, 62, 0.8);
+}
+
+.main-nav i {
+    margin-right: 10px;
+}
+
+.main-nav {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Conteúdo principal */
+.content {
+    flex: 1;
+    margin-left: 240px; /* Largura do sidebar */
+    padding: 20px;
+    box-sizing: border-box;
+    min-height: calc(100vh - var(--footer-height));
+}
+
+
+.welcome-section {
+    background-color: var(--bg-white);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.welcome-section h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.client-info {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.client-info p {
+    margin: 8px 0;
+}
+
+.welcome-message {
+    line-height: 1.6;
+}
+
+.welcome-message p {
+    margin-bottom: 15px;
+}
+
+/* Rodapé fixo na parte inferior */
+.main-footer {
+    background-color: var(--bg-white);
+    color: var(--text-color);
+    padding: 8px 20px;
+    text-align: center;
+    font-size: 12px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    border-top: 1px solid var(--border-color);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--footer-height);
+    box-sizing: border-box;
+    z-index: 1000; /* Mesmo z-index que o cabeçalho para ficar acima de tudo */
+}
+
+.main-footer p {
+    margin: 3px 0;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    :root {
+        --header-height: 60px; /* Altura maior para cabeçalho em layout mobile */
+    }
+
+    .header-content {
+        flex-direction: row; /* Mantém em linha */
+        padding: 5px 0;
+        justify-content: center; /* Centraliza a logo */
+    }
+    
+    .logo-container {
+        margin-bottom: 0;
+    }
+    
+    .user-info {
+        margin-top: 0; /* Removido o margin-top */
+        width: auto; /* Alterado de 100% para auto */
+    }
+    
+    /* Reorganização para layout mobile */
+    .page-wrapper {
+        flex-direction: column;
+    }
+    
+    
+    .sidebar {
+        width: 100%;
+        position: relative;
+        top: 0;
+        height: auto;
+        position: static;
+    }
+    
+    .content {
+        margin-left: 0;
+        padding: 10px;
+    }
+    
+    .main-footer {
+        position: relative;
+        margin-top: 20px;
+    }
+}
+
+/* Estilo para o rodapé da sidebar com botão de logout */
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+}
+
+.btn-sidebar-logout {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 14px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-sidebar-logout:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-sidebar-logout i {
+    margin-right: 5px;
+}
+
+/* Ajuste para o footer do sidebar em dispositivos móveis */
+@media (max-width: 480px) {
+    .sidebar {
+        /* Propriedades existentes */
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .sidebar-footer {
+        position: relative; /* Mudança de absolute para relative */
+        bottom: auto;
+        margin-top: auto; /* Empurra para o final do flex container */
+        width: 100%;
+        padding: 15px;
+    }
+    
+    /* Garantir que o botão de logout fique visível dentro do menu */
+    .sidebar.active .sidebar-footer {
+        display: block;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        height: auto;
+        max-height: 70vh; /* Um pouco maior para acomodar o botão */
+        overflow-y: auto;
+    }
+    
+    .main-nav {
+        overflow-y: auto;
+        max-height: calc(70vh - 120px); /* Espaço para o footer do sidebar */
+    }
+}

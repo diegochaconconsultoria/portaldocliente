@@ -1,0 +1,163 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="pedido-detalhes.css">
+</head>
+<body>
+
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li class="active"><a href="/pedidos"><i class="icon-pedidos"></i> Pedidos</a></li>
+                    <li><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+             <!-- Botão de logout no menu lateral -->
+             <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section class="detalhes-section">
+                <div class="header-acoes">
+                    <h2>Detalhes do Pedido <span id="numeroPedido"></span></h2>
+                    <div class="acoes">
+                        <button id="btnVoltar" class="btn-secundario">Voltar</button>
+                    </div>
+                </div>
+                
+                <!-- Indicador de carregamento -->
+                <div id="loadingIndicator" class="loading-indicator">
+                    Carregando detalhes do pedido, aguarde...
+                </div>
+                
+                <!-- Conteúdo dos detalhes -->
+                <div id="detalhesContent" class="detalhes-content hidden">
+                    <div class="card-info">
+                        <div class="info-header">
+                            <h3>Informações do Pedido</h3>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-row">
+                                <div class="info-column">
+                                    <label>Proposta:</label>
+                                    <span id="proposta">-</span>
+                                </div>
+                                <div class="info-column">
+                                    <label>Valor Total:</label>
+                                    <span id="valorTotal">-</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-column">
+                                    <label>Transportadora:</label>
+                                    <span id="transportadora">-</span>
+                                </div>
+                                <div class="info-column">
+                                    <label>Tipo de Operação:</label>
+                                    <span id="tipoOperacao">-</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-column">
+                                    <label>Chave de Acesso:</label>
+                                    <span id="chaveAcesso">-</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-column full">
+                                    <button id="btnVisualizarProducao" class="btn-producao">
+                                        <i class="icon-production">⚙</i> Visualizar Produção
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-info">
+                        <div class="info-header">
+                            <h3>Status do Pedido</h3>
+                        </div>
+                        <div class="info-content">
+                            <div class="status-tracker">
+                                <div class="status-item" id="status-conferido">
+                                    <div class="status-icon">
+                                        <i class="icon-check"></i>
+                                    </div>
+                                    <div class="status-label">Conferido</div>
+                                </div>
+                                <div class="status-line"></div>
+                                <div class="status-item" id="status-producaoIniciada">
+                                    <div class="status-icon">
+                                        <i class="icon-production"></i>
+                                    </div>
+                                    <div class="status-label">Produção Iniciada</div>
+                                </div>
+                                <div class="status-line"></div>
+                                <div class="status-item" id="status-producaoConcluida">
+                                    <div class="status-icon">
+                                        <i class="icon-complete"></i>
+                                    </div>
+                                    <div class="status-label">Produção Concluída</div>
+                                </div>
+                                <div class="status-line"></div>
+                                <div class="status-item" id="status-faturado">
+                                    <div class="status-icon">
+                                        <i class="icon-invoice"></i>
+                                    </div>
+                                    <div class="status-label">Faturado</div>
+                                </div>
+                                <div class="status-line"></div>
+                                <div class="status-item" id="status-expedido">
+                                    <div class="status-icon">
+                                        <i class="icon-truck"></i>
+                                    </div>
+                                    <div class="status-label">Expedido</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mensagem de erro -->
+                <div id="mensagemErro" class="mensagem-erro hidden">
+                    Não foi possível carregar os detalhes do pedido. Por favor, tente novamente mais tarde.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">22/04/2025 - 10:15</span></p>
+    </footer>
+
+    <script src="dashboard.js"></script>
+    <script src="pedido-detalhes.js"></script>
+</body>
+</html>
+```

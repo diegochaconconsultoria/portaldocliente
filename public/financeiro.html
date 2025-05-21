@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="financeiro.css">
+</head>
+<body>
+
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li><a href="/pedidos"><i class="icon-pedidos"></i> Pedidos</a></li>
+                    <li><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li class="active"><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+             <!-- Botão de logout no menu lateral -->
+             <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section id="financeiro-section" class="financeiro-section">
+                <h2>Posição Financeira</h2>
+                
+                <div class="filtro-container">
+                    <h3>Filtros de Busca</h3>
+                    <form id="financeiroFilterForm" class="filtro-form">
+                        <div class="filtro-row">
+                            <div class="filtro-item todos-toggle">
+                                <label for="todosToggle">Todos os Títulos:</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="todosToggle" class="toggle-input">
+                                    <label for="todosToggle" class="toggle-label">
+                                        <span class="toggle-option">Não</span>
+                                        <span class="toggle-option">Sim</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="filtro-item">
+                                <label for="statusSelect">Status:</label>
+                                <select id="statusSelect" class="filtro-input">
+                                    <option value="Todos">Todos</option>
+                                    <option value="Abertos">Abertos</option>
+                                    <option value="Pagos">Pagos</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filtro-row">
+                            <div class="filtro-item">
+                                <label for="dataVencimentoDe">Vencimento De:</label>
+                                <input type="date" id="dataVencimentoDe" class="filtro-input">
+                            </div>
+                            <div class="filtro-item">
+                                <label for="dataVencimentoAte">Vencimento Até:</label>
+                                <input type="date" id="dataVencimentoAte" class="filtro-input">
+                            </div>
+                        </div>
+                        
+                        <div class="filtro-actions">
+                            <button type="button" id="buscarBtn" class="btn-primary">Buscar Títulos</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Indicador de carregamento -->
+                <div id="loadingIndicator" class="loading-indicator hidden">
+                    Carregando títulos financeiros, aguarde...
+                </div>
+                
+                <!-- Mensagem quando não há resultados -->
+                <div id="mensagemSemResultados" class="mensagem-sem-resultados hidden">
+                    Nenhum título financeiro encontrado com os filtros informados.
+                </div>
+                
+                <!-- Totalizadores -->
+                <div id="totalizadores" class="totalizadores-container hidden">
+                    <div class="totalizador">
+                        <div class="totalizador-label">Total de Títulos:</div>
+                        <div id="totalTitulos" class="totalizador-valor">0</div>
+                    </div>
+                    <div class="totalizador">
+                        <div class="totalizador-label">Valor Total:</div>
+                        <div id="valorTotal" class="totalizador-valor">R$ 0,00</div>
+                    </div>
+                    <div class="totalizador">
+                        <div class="totalizador-label">Total Pago:</div>
+                        <div id="valorPago" class="totalizador-valor">R$ 0,00</div>
+                    </div>
+                    <div class="totalizador">
+                        <div class="totalizador-label">Saldo Devedor:</div>
+                        <div id="saldoDevedor" class="totalizador-valor">R$ 0,00</div>
+                    </div>
+                </div>
+                
+                <!-- Tabela de resultados -->
+                <div id="tabelaTitulos" class="tabela-container hidden">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Parcela</th>
+                                <th>Emissão</th>
+                                <th>Vencimento</th>
+                                <th>Valor</th>
+                                <th>Valor Pago</th>
+                                <th>Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaTitulosBody">
+                            <!-- Linhas serão preenchidas via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">22/04/2025 - 10:15</span></p>
+    </footer>
+
+    <script src="dashboard.js"></script>
+    <script src="financeiro.js"></script>
+</body>
+</html>
+```

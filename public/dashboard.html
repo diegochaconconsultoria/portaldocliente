@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVK - Portal do Cliente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <!-- ESTRUTURA DE LAYOUT -->
+    <div class="page-wrapper">
+        <!-- MENU LATERAL À ESQUERDA -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo MVK">
+            </div>
+
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/dashboard"><i class="icon-dashboard"></i> Inicio</a></li>
+                    <li><a href="/pedidos" id="menuPedidos" onclick="return navegarParaPedidos(event)"><i
+                                class="icon-pedidos"></i> Pedidos</a></li>
+                    <li><a href="/notas-fiscais"><i class="icon-notas"></i> Notas Fiscais</a></li>
+                    <li><a href="/financeiro"><i class="icon-financeiro"></i> Posição Financeira</a></li>
+                    <li><a href="/sac"><i class="icon-sac"></i> SAC</a></li>
+                </ul>
+            </nav>
+
+
+            <!-- Botão de logout no menu lateral -->
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-sidebar-logout">
+                    <i class="icon-logout"></i> Sair
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <section id="bemvindo" class="welcome-section">
+                <h2>Bem-vindo(a) ao Portal do Cliente</h2>
+                <div class="client-info">
+                    <p><strong>Cliente:</strong> <span id="clientName">Carregando...</span></p>
+                    <p><strong>Código:</strong> <span id="clientCode">Carregando...</span></p>
+                    <p><strong>CNPJ:</strong> <span id="clientCnpj">Carregando...</span></p>
+                    <p><strong>Email:</strong> <span id="clientEmail">Carregando...</span></p>
+                </div>
+                <div class="welcome-message">
+                    <p>Neste portal você pode consultar seus pedidos, notas fiscais, posição financeira e abrir
+                        solicitações através do nosso SAC.</p>
+                    <p>Utilize o menu lateral para navegar entre as diferentes seções.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>&copy; 2025 MVK. Todos os direitos reservados.</p>
+        <p>Última atualização: <span id="lastUpdate">17/04/2025 - 17:29</span></p>
+    </footer>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,398 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --primary-color: #d8183e; /* Nova cor tema conforme solicitado */
+    --primary-hover: #b01433;
+    --text-dark: #333;
+    --text-light: #555;
+    --bg-light: #f5f5f5;
+    --bg-white: #ffffff;
+    --border-color: #ddd;
+}
+
+body {
+    background-color: #f5f5f5;
+    background-image: url('geometric-background.svg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+}
+
+.login-form {
+    background-color: var(--bg-white);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-container img {
+    max-width: 150px;
+    height: auto;
+}
+
+.login-form h2 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border 0.3s ease;
+}
+
+.input-group input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.btn-login {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-login:hover {
+    background-color: var(--primary-hover);
+}
+
+.first-access {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.first-access a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.first-access a:hover {
+    text-decoration: underline;
+}
+
+/* Adicionando ao arquivo CSS existente */
+
+/* Ajustar o tamanho e scroll para o formulário */
+.container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    margin: 20px auto;
+}
+
+.login-form {
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: var(--bg-white);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Ajustar o tamanho para um formulário mais largo e sem rolagem no container principal */
+.container {
+    width: 100%;
+    max-width: 600px; /* Aumentado de 450px para 600px */
+    padding: 20px;
+    margin: 20px auto;
+}
+
+.login-form {
+    max-height: initial; /* Removendo a altura máxima para evitar a barra de rolagem do container */
+    overflow-y: visible; /* Removendo a rolagem automática */
+    background-color: var(--bg-white);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Mantendo apenas a rolagem para o texto de termos */
+.terms-container {
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    background-color: #f9f9f9;
+}
+
+.terms-text {
+    max-height: 120px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding-right: 10px;
+}
+
+/* Melhorando o layout para o formulário mais largo */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px; /* Aumentando um pouco o padding para campos mais altos */
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border 0.3s ease;
+}
+
+/* Estilos para responsividade em telas médias */
+@media (max-width: 650px) {
+    .container {
+        max-width: 90%;
+    }
+}
+
+/* Estilos para responsividade em telas pequenas */
+@media (max-width: 480px) {
+    .login-form {
+        padding: 20px 15px;
+    }
+    
+    .input-group input {
+        padding: 10px 12px;
+    }
+}
+
+/* Adicione estes estilos ao seu arquivo styles.css existente */
+
+/* Estilo para botão desabilitado */
+.btn-login:disabled {
+    background-color: #b3b3b3;
+    cursor: not-allowed;
+}
+
+/* Estilos para mensagem de sucesso */
+.mensagem-sucesso {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.mensagem-sucesso h3 {
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.mensagem-sucesso p {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.botoes {
+    margin-top: 25px;
+}
+
+.btn-voltar {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+.btn-voltar:hover {
+    background-color: var(--primary-hover);
+}
+
+
+/* Adicione estes estilos ao seu arquivo CSS existente */
+
+/* Estilo para mensagens de erro */
+.error-message {
+    color: #d8183e;
+    background-color: #ffe8e8;
+    border: 1px solid #d8183e;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 15px;
+    text-align: center;
+    display: none;
+}
+
+/* Estilo para o botão de login desabilitado */
+.btn-login:disabled {
+    background-color: #b3b3b3;
+    cursor: not-allowed;
+}
+
+/* Estilo para tela de carregamento/transição */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.loading-screen.visible {
+    opacity: 1;
+}
+
+.loading-content {
+    text-align: center;
+    padding: 30px;
+    max-width: 400px;
+}
+
+.loading-logo {
+    width: 150px;
+    height: auto;
+    animation: pulse 2s infinite;
+}
+
+.loading-content h2 {
+    color: var(--primary-color);
+    margin: 20px 0 10px;
+    animation: fadeIn 1s ease;
+}
+
+.loading-content p {
+    color: var(--text-light);
+    margin-bottom: 25px;
+    animation: fadeIn 1.5s ease;
+}
+
+.loading-spinner {
+    margin: 0 auto;
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(216, 24, 62, 0.2);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+}
+
+/* Animações */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
+
+/* Estilo para comemoração de 30 anos */
+.anniversary-content {
+    text-align: center;
+    padding: 30px;
+    max-width: 500px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.loading-screen.visible .anniversary-content {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.anniversary-image {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+
+.anniversary-text {
+    color: var(--primary-color);
+    font-size: 28px;
+    margin: 20px 0;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 5px rgba(216, 24, 62, 0.2);
+    }
+    to {
+        text-shadow: 0 0 15px rgba(216, 24, 62, 0.6);
+    }
+}
+
+/* Ajustes para a transição entre as fases */
+.loading-content {
+    text-align: center;
+    padding: 30px;
+    max-width: 400px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.loading-content.visible {
+    opacity: 1;
+}

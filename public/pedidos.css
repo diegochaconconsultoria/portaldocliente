@@ -1,0 +1,1007 @@
+/* Estilos para a Página de Pedidos */
+
+.pedidos-section {
+    background-color: var(--bg-white);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.pedidos-section h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Estilos para o container de filtros */
+.filtro-container {
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.filtro-container h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: var(--secondary-color);
+}
+
+.filtro-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.filtro-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.filtro-item {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filtro-item label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.filtro-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filtro-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(216, 24, 62, 0.2);
+}
+
+/* Estilos para o toggle switch "Todos" */
+.todos-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.todos-toggle label {
+    margin-bottom: 0;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 80px;
+    height: 30px;
+}
+
+.toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    position: relative;
+    display: inline-block;
+    height: 30px;
+    width: 80px;
+    background-color: #e0e0e0;
+    border-radius: 15px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    transition: all 0.3s;
+}
+
+.toggle-label:before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    z-index: 2;
+}
+
+.toggle-input:checked + .toggle-label {
+    background-color: var(--primary-color);
+}
+
+.toggle-input:checked + .toggle-label:before {
+    transform: translateX(50px);
+}
+
+.toggle-option {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.toggle-option:first-child {
+    left: 40px;
+    color: #666;
+}
+
+.toggle-option:last-child {
+    left: 12px;
+    color: white;
+    opacity: 0;
+}
+
+.toggle-input:checked + .toggle-label .toggle-option:first-child {
+    opacity: 0;
+}
+
+.toggle-input:checked + .toggle-label .toggle-option:last-child {
+    opacity: 1;
+}
+
+/* Botão de busca */
+.filtro-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Estilo para campos desabilitados */
+.filtro-input:disabled {
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Estilos para a tabela de resultados */
+.tabela-container {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.btn-detalhes {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.btn-detalhes:hover {
+    background-color: #444;
+}
+
+/* Estilo para indicador de carregamento e mensagens */
+.loading-indicator, .mensagem-sem-resultados {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .filtro-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .filtro-item {
+        width: 100%;
+    }
+}
+
+
+/* Estilos para o modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-loading {
+    padding: 30px;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    max-width: 300px;
+    text-align: center;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 18px;
+}
+
+.btn-fechar {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.3s;
+}
+
+.btn-fechar:hover {
+    color: var(--primary-color);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Estilos para o card de informações */
+.card-info {
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.info-header {
+    background-color: #f5f5f5;
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--secondary-color);
+}
+
+.info-content {
+    padding: 15px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-column {
+    flex: 1;
+    min-width: 0;
+    padding-right: 15px;
+}
+
+.info-column:last-child {
+    padding-right: 0;
+}
+
+.info-column.full {
+    flex-basis: 100%;
+}
+
+.info-column label {
+    display: block;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.info-column span {
+    display: block;
+    word-break: break-word;
+}
+
+/* Rastreador de status com cor verde */
+.status-tracker {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+    text-align: center;
+}
+
+.status-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    margin-bottom: 8px;
+    color: #9e9e9e;
+    transition: all 0.3s;
+}
+
+.status-item.active .status-icon {
+    background-color: #28a745; /* Cor verde para status ativos */
+    color: white;
+}
+
+.status-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+}
+
+.status-item.active .status-label {
+    color: #28a745; /* Cor verde para texto de status ativos */
+    font-weight: 600;
+}
+
+.status-line {
+    flex: 1;
+    height: 2px;
+    background-color: #e0e0e0;
+    position: relative;
+    margin: 0 5px;
+}
+
+.status-line.active {
+    background-color: #28a745; /* Cor verde para linhas de status ativos */
+}
+
+/* Ajustes responsivos para o modal */
+@media (max-width: 768px) {
+    .info-row {
+        flex-direction: column;
+    }
+    
+    .info-column {
+        padding-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .info-column:last-child {
+        margin-bottom: 0;
+    }
+    
+    .status-tracker {
+        overflow-x: auto;
+        padding-bottom: 15px;
+    }
+    
+    .status-item {
+        min-width: 80px;
+    }
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary {
+    background-color: #28a745; /* Verde */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+}
+
+.btn-primary i {
+    margin-right: 5px;
+}
+
+.nf-loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.nf-loading-indicator img {
+    width: 24px;
+    height: 24px;
+}
+
+.nf-loading-indicator span {
+    font-size: 14px;
+    color: #666;
+}
+
+.mensagem-sucesso-nf {
+    display: flex;
+    align-items: center;
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.icone-sucesso {
+    background-color: #28a745;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.texto-sucesso {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease-in-out;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Overlay de mensagens */
+.overlay-mensagem {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Acima de qualquer outro elemento */
+}
+
+.overlay-conteudo {
+    background-color: white;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+}
+
+.overlay-conteudo p {
+    margin: 15px 0 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+}
+
+.overlay-conteudo.sucesso {
+    border-left: 5px solid #28a745;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #d8183e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Ícone de sucesso */
+.icone-sucesso {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    margin: 0 auto;
+    background-color: #28a745;
+    color: white;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+
+/* Ajuste para o texto adicional no status de produção iniciada */
+.status-item.active.clickable .status-label small {
+    display: block;
+    margin-top: 3px;
+    font-weight: normal;
+    line-height: 1.2;
+}
+
+/* Talvez seja necessário ajustar a altura do item para acomodar o texto adicional */
+.status-item.active.clickable {
+    padding-bottom: 5px;
+}
+
+/* Como agora temos o texto explícito, podemos remover o tooltip */
+.status-item.active.clickable::after {
+    content: none;
+}
+
+/* Estilos para o modal de produção */
+.modal-producao {
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+}
+
+.modal-producao .modal-body {
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.produtos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.produto-item {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 15px;
+    border-left: 4px solid #28a745;
+}
+
+.produto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.produto-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.produto-info p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.produto-qtd {
+    background-color: #e9ecef;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.progresso-container {
+    margin-top: 10px;
+}
+
+.progresso-info {
+    display: flex;
+    justify-content: flex-end; /* Alterado para alinhar à direita */
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #666;
+}
+.porcentagem {
+    font-weight: bold;
+    color: #333;
+}
+.progresso-barra-container {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progresso-barra {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Animação para as barras de progresso */
+@keyframes progressAnimation {
+    0% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.5; }
+}
+
+.progresso-barra {
+    animation: progressAnimation 2s infinite;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .produto-header {
+        flex-direction: column;
+    }
+    
+    .produto-qtd {
+        margin-top: 10px;
+        align-self: flex-start;
+    }
+    
+    .progresso-info {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .porcentagem {
+        align-self: flex-end;
+    }
+}
+
+/* Estilos para o resumo de produção no topo do modal */
+.resumo-producao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.grafico-geral-container {
+    width: 150px;
+    height: 150px;
+    position: relative;
+}
+
+.info-geral {
+    flex: 1;
+    margin-left: 30px;
+}
+
+.info-geral h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 18px;
+}
+
+.estatisticas {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.estatistica-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.estatistica-label {
+    color: #666;
+    font-weight: 500;
+}
+
+.estatistica-valor {
+    color: #333;
+    font-weight: 600;
+}
+
+.porcentagem-geral {
+    font-size: 16px;
+    color: var(--primary-color);
+}
+
+.separador {
+    height: 1px;
+    background-color: #e9ecef;
+    margin: 0;
+}
+
+.secao-titulo {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    color: #555;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .resumo-producao {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .grafico-geral-container {
+        margin-bottom: 20px;
+    }
+    
+    .info-geral {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .estatisticas {
+        width: 80%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Ajustes para os filtros */
+    .filtro-container {
+        padding: 10px;
+    }
+    
+    .filtro-container h3 {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .filtro-row {
+        margin-bottom: 8px;
+    }
+    
+    .filtro-item {
+        margin-bottom: 8px;
+    }
+    
+    .filtro-input, .btn-primary {
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    /* Ajustar a tabela para visualização móvel */
+    .tabela-container {
+        margin-top: 15px;
+    }
+    
+    /* Transformar tabela em cards para dispositivos móveis */
+    .tabela-container table,
+    .tabela-container thead,
+    .tabela-container tbody,
+    .tabela-container th,
+    .tabela-container td,
+    .tabela-container tr {
+        display: block;
+    }
+    
+    .tabela-container thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .tabela-container tr {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        padding: 8px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .tabela-container td {
+        border: none;
+        border-bottom: 1px solid #eee;
+        position: relative;
+        padding: 8px 8px 8px 40%;
+        text-align: right;
+        min-height: 30px;
+    }
+    
+    .tabela-container td:last-child {
+        border-bottom: none;
+    }
+    
+    .tabela-container td:before {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 35%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        content: attr(data-label);
+        text-align: left;
+    }
+    
+    /* Atribuir labels específicos para células */
+    .tabela-container td:nth-of-type(1):before { content: "Número:"; }
+    .tabela-container td:nth-of-type(2):before { content: "Proposta:"; }
+    .tabela-container td:nth-of-type(3):before { content: "Data:"; }
+    .tabela-container td:nth-of-type(4):before { content: "Operação:"; }
+    .tabela-container td:nth-of-type(5):before { content: "Ações:"; }
+    
+    /* Ajustes para botões na tabela */
+    .tabela-container .btn-detalhes {
+        width: 100%;
+        text-align: center;
+        margin-top: 5px;
+        padding: 8px;
+    }
+}
+
+/* Estilo para botão de relatório de montagem */
+#btn-relatorio-montagem {
+    background-color: #4a6fb5; /* Cor azul para diferenciar do botão de NF */
+    margin-left: 10px;
+}
+
+#btn-relatorio-montagem:hover {
+    background-color: #3a5a94;
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* Ajuste responsivo para botões no footer */
+@media (max-width: 768px) {
+    .footer-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .footer-buttons button {
+        margin-left: 0 !important;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+}
+
+/* Estilo para botão de visualizar produção */
+#btn-visualizar-producao {
+    background-color: #f59528; /* Cor verde */
+    margin-left: 10px;
+}
+
+#btn-visualizar-producao:hover {
+    background-color: #f18204;
+}
+
+
+/* Estilo para botão de relatório de montagem */
+#btn-relatorio-fechar {
+    background-color: #a0a0a0; /* Cor azul para diferenciar do botão de NF */
+    margin-left: 10px;
+}
+
+#btn-relatorio-fecharhover {
+    background-color: #646464;
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 10px;
+}

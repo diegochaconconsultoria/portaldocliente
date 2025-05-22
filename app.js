@@ -10,6 +10,28 @@ const multer = require('multer');
 // Carregar variáveis de ambiente
 require('dotenv').config();
 
+const { 
+    wafInstance, 
+    wafReportingMiddleware 
+} = require('./app/middlewares/waf');
+
+
+const {
+    wafDataProtectionMiddleware,
+    mvkCustomRulesMiddleware,
+    advancedMonitoringMiddleware
+} = require('./app/middlewares/waf-integration');
+
+
+const { getEnvironmentConfig } = require('./config/waf-rules');
+
+// Aplicar configurações de ambiente do WAF
+const wafEnvConfig = getEnvironmentConfig();
+Object.assign(require('./app/middlewares/waf').WAF_CONFIG, wafEnvConfig);
+
+console.log(`🛡️ WAF inicializado - Modo: ${wafEnvConfig.MODE}, Ambiente: ${process.env.NODE_ENV || 'development'}`);
+
+
 // Importar middlewares
 const { autenticacaoRequerida } = require('./app/middlewares/auth');
 const { protecaoCSRF, obterTokenCSRF } = require('./app/middlewares/csrf');
@@ -53,8 +75,10 @@ const {
     dataProtectionMiddleware,
     logProtectionMiddleware,
     sessionDataCleanupMiddleware,
-    ServerDataEncryption
+    ServerDataEncryption,
+    DATA_PROTECTION_CONFIG //
 } = require('./app/middlewares/data-protection');
+
 
 // Aplicar políticas de segurança básicas
 app.use(helmet());
@@ -85,6 +109,18 @@ app.use(helmet.hsts({
     includeSubDomains: true,
     preload: true
 }));
+
+app.set('trust proxy', true);
+
+app.use(wafInstance.middleware());
+app.use(wafDataProtectionMiddleware);
+app.use(mvkCustomRulesMiddleware);
+app.use(advancedMonitoringMiddleware);
+app.use(wafReportingMiddleware(wafInstance));
+
+
+app.use(wafInstance.middleware());
+
 
 // Middlewares
 app.use(express.static(path.join(__dirname, 'public')));
@@ -118,8 +154,6 @@ app.use((req, res, next) => {
 
     next();
 });
-
-
 
 // Configuração de sessão segura
 app.use(session({
@@ -163,7 +197,7 @@ const loginLimiter = rateLimit({
 });
 
 // Configuração do transportador de email
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'email-ssl.com.br',
     port: parseInt(process.env.EMAIL_PORT || '465', 10),
     secure: true, // true para porta 465, false para outras portas
@@ -196,7 +230,7 @@ function maskCNPJ(cnpj) {
 }
 
 // Iniciar monitoramento da API
-const monitoringInterval = apiMonitor.iniciarMonitoramento();
+//const monitoringInterval = apiMonitor.iniciarMonitoramento();
 
 // Rota para obter token CSRF
 app.get('/api/csrf-token', protecaoCSRF, obterTokenCSRF);
@@ -849,11 +883,11 @@ app.use((err, req, res, next) => {
 
 
 // Graceful shutdown - parar monitoramento ao encerrar o servidor
-process.on('SIGTERM', () => {
+/*process.on('SIGTERM', () => {
     console.log('Encerrando servidor...');
     apiMonitor.pararMonitoramento(monitoringInterval);
     process.exit(0);
-});
+});*/
 
 process.on('SIGINT', () => {
     console.log('Encerrando servidor...');
@@ -874,10 +908,29 @@ console.log('📊 Logs de dados sensíveis:', DATA_PROTECTION_CONFIG.LOG_SENSITI
 console.log('🎭 Mascaramento automático:', DATA_PROTECTION_CONFIG.MASK_LOGS ? 'ATIVO' : 'INATIVO');
 
 // Inicia o servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+//const PORT = process.env.PORT || 3000;
+/*app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
     console.log(`Portal disponível em: http://localhost:${PORT}`);
     console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Data e hora de inicialização: ${new Date().toLocaleString('pt-BR')}`);
+});*/
+
+
+const https = require('https');
+const fs = require('fs');
+
+const PORT = process.env.PORT || 3000;
+
+// Carregar os certificados SSL
+const httpsOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'certs', 'certificate_key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'certs', 'certificate.crt'))
+};
+
+// Inicia o servidor HTTPS
+https.createServer(httpsOptions, app).listen(PORT, () => {
+    console.log(`🔐 Servidor rodando em https://localhost:${PORT}`);
+    console.log(`🗂️  Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`⏰ Data e hora de inicialização: ${new Date().toLocaleString('pt-BR')}`);
 });

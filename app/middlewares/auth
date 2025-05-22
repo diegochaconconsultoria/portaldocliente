@@ -1,6 +1,11 @@
 /**
  * Middleware de autenticação para as rotas da API
  */
+const jwt = require('jsonwebtoken');
+
+// Configurações
+const TOKEN_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-aqui'; // Melhor usar env var
+const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600', 10); // 1 hora em segundos
 
 // Verificar se o usuário está autenticado
 const autenticacaoRequerida = (req, res, next) => {
@@ -10,9 +15,81 @@ const autenticacaoRequerida = (req, res, next) => {
             error: 'Faça login para acessar este recurso'
         });
     }
+    
+    // Verificar se a sessão expirou
+    const agora = Date.now();
+    const ultimoAcesso = req.session.ultimoAcesso || 0;
+    
+    if (agora - ultimoAcesso > SESSION_TIMEOUT * 1000) {
+        // Limpar sessão
+        req.session.destroy();
+        return res.status(401).json({ 
+            message: 'Sessão expirada',
+            error: 'Sua sessão expirou. Por favor, faça login novamente.',
+            code: 'SESSION_EXPIRED'
+        });
+    }
+    
+    // Atualizar último acesso
+    req.session.ultimoAcesso = agora;
     next();
 };
 
+// Middleware para rotas que exigem permissões específicas
+const permissaoRequerida = (permissoes) => {
+    return (req, res, next) => {
+        // Primeiro, verifica autenticação
+        if (!req.session.usuario) {
+            return res.status(401).json({ 
+                message: 'Usuário não autenticado',
+                error: 'Faça login para acessar este recurso'
+            });
+        }
+        
+        // Depois, verifica permissões
+        const permissoesUsuario = req.session.usuario.permissoes || [];
+        
+        // Verifica se o usuário tem alguma das permissões exigidas
+        const temPermissao = Array.isArray(permissoes) 
+            ? permissoes.some(p => permissoesUsuario.includes(p))
+            : permissoesUsuario.includes(permissoes);
+            
+        if (!temPermissao) {
+            return res.status(403).json({
+                message: 'Acesso negado',
+                error: 'Você não tem permissão para acessar este recurso',
+                code: 'PERMISSION_DENIED'
+            });
+        }
+        
+        next();
+    };
+};
+
+// Gerar token JWT
+const gerarToken = (usuario) => {
+    const payload = {
+        id: usuario.codigo,
+        email: usuario.email,
+        tipo: 'acesso'
+    };
+    
+    // Token com validade de 1 hora
+    return jwt.sign(payload, TOKEN_SECRET, { expiresIn: '1h' });
+};
+
+// Verificar token JWT 
+const verificarToken = (token) => {
+    try {
+        return jwt.verify(token, TOKEN_SECRET);
+    } catch (error) {
+        return null;
+    }
+};
+
 module.exports = {
-    autenticacaoRequerida
+    autenticacaoRequerida,
+    permissaoRequerida,
+    gerarToken,
+    verificarToken
 };

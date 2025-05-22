@@ -20,7 +20,8 @@ const ERROR_CODES = {
     NETWORK_ERROR: 'NET001',
     ACCESS_DENIED: 'AUTH003',
     INVALID_INPUT: 'VAL002',
-    API_ERROR: 'API001'
+    API_ERROR: 'API001',
+    CSRF_ERROR: 'SEC001'
 };
 
 // Mapeamento entre códigos internos e públicos
@@ -31,8 +32,12 @@ const ERROR_MAPPING = {
     'DB_CONNECTION_ERROR': ERROR_CODES.SERVER_ERROR,
     'API_TIMEOUT': ERROR_CODES.API_ERROR,
     'API_INVALID_RESPONSE': ERROR_CODES.API_ERROR,
-    'NETWORK_DISCONNECT': ERROR_CODES.NETWORK_ERROR
+    'NETWORK_DISCONNECT': ERROR_CODES.NETWORK_ERROR,
+    'CSRF_ERROR': ERROR_CODES.CSRF_ERROR
 };
+
+// Armazenar token CSRF atual
+let currentCSRFToken = null;
 
 /**
  * Sanitiza uma string para prevenir XSS
@@ -103,6 +108,7 @@ async function obterCSRFToken() {
         const response = await fetch('/api/csrf-token');
         if (!response.ok) throw new Error('Falha ao obter token CSRF');
         const data = await response.json();
+        currentCSRFToken = data.token;
         return data.token;
     } catch (error) {
         console.error('Erro ao obter token CSRF:', error);
@@ -118,24 +124,112 @@ async function obterCSRFToken() {
  */
 async function fetchSeguro(url, options = {}) {
     try {
-        // Obter token CSRF
-        const csrfToken = await obterCSRFToken();
+        // Obter token CSRF se não tiver um válido
+        if (!currentCSRFToken) {
+            await obterCSRFToken();
+        }
         
         // Configurar headers com o token
         const headers = {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
+            'X-CSRF-Token': currentCSRFToken,
             ...(options.headers || {})
         };
         
         // Fazer a requisição com o token
-        return fetch(url, {
+        const response = await fetch(url, {
             ...options,
             headers
         });
+        
+        // Se receber erro CSRF, tentar renovar o token uma vez
+        if (response.status === 403) {
+            const errorData = await response.json();
+            if (errorData.code === 'CSRF_ERROR') {
+                console.warn('Token CSRF expirado, renovando...');
+                await obterCSRFToken();
+                
+                // Tentar novamente com o novo token
+                const newHeaders = {
+                    ...headers,
+                    'X-CSRF-Token': currentCSRFToken
+                };
+                
+                return fetch(url, {
+                    ...options,
+                    headers: newHeaders
+                });
+            }
+        }
+        
+        return response;
     } catch (error) {
         console.error('Erro na requisição segura:', error);
         throw error;
+    }
+}
+
+/**
+ * Wrapper seguro para requisições de API com retry e timeout
+ * @param {string} url - URL da API
+ * @param {object} options - Opções da requisição
+ * @returns {Promise<object>} - Resposta da API
+ */
+async function apiRequest(url, options = {}) {
+    const defaultOptions = {
+        timeout: 30000, // 30 segundos
+        retries: 2,
+        retryDelay: 1000 // 1 segundo
+    };
+    
+    const config = { ...defaultOptions, ...options };
+    
+    for (let tentativa = 0; tentativa <= config.retries; tentativa++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), config.timeout);
+            
+            const response = await fetchSeguro(url, {
+                ...config,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`API retornou status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Log de sucesso
+            await securityLog(LOG_LEVELS.INFO, 'Requisição API bem-sucedida', {
+                url,
+                attempt: tentativa + 1,
+                status: response.status
+            });
+            
+            return data;
+            
+        } catch (error) {
+            const isLastAttempt = tentativa === config.retries;
+            
+            console.warn(`Tentativa ${tentativa + 1} falhou para ${url}:`, error.message);
+            
+            if (isLastAttempt) {
+                // Log de erro final
+                await securityLog(LOG_LEVELS.ERROR, 'Requisição API falhou após todas as tentativas', {
+                    url,
+                    totalAttempts: tentativa + 1,
+                    error: error.message
+                });
+                
+                throw error;
+            }
+            
+            // Aguardar antes da próxima tentativa
+            await new Promise(resolve => setTimeout(resolve, config.retryDelay * (tentativa + 1)));
+        }
     }
 }
 
@@ -145,7 +239,7 @@ async function fetchSeguro(url, options = {}) {
  */
 async function verificarSessao() {
     try {
-        const response = await fetchSeguro('/api/verificar-sessao');
+        const response = await fetchSeguro('/api/usuario');
         if (!response.ok) {
             if (response.status === 401) {
                 // Sessão inválida, redirecionar para login
@@ -259,13 +353,11 @@ function processarDadosUsuario(dados) {
         nome: dados.nome,
         codigo: dados.codigo,
         email: dados.email
-        // Não incluir CNPJ completo, senhas, etc.
     };
     
     // Para exibição parcial de dados sensíveis
     if (dados.cnpj) {
-        // Mostrar apenas os últimos 4 dígitos
-        dadosFiltrados.cnpjParcial = `***.***/****-${dados.cnpj.slice(-2)}`;
+        dadosFiltrados.cnpjParcial = dados.cnpj; // Já vem mascarado do servidor
     }
     
     return dadosFiltrados;
@@ -299,19 +391,162 @@ function validarJWT(token) {
     }
 }
 
+/**
+ * Validar entrada do usuário para prevenir XSS e injeção
+ * @param {string} input - Entrada do usuário
+ * @returns {string} - Entrada sanitizada
+ */
+function validarEntrada(input) {
+    if (!input || typeof input !== 'string') return '';
+    
+    // Remover tags HTML perigosas
+    let sanitized = input.replace(/<script[^>]*>.*?<\/script>/gi, '');
+    sanitized = sanitized.replace(/<iframe[^>]*>.*?<\/iframe>/gi, '');
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+    
+    return sanitized.trim();
+}
+
+/**
+ * Verificar se uma URL é segura
+ * @param {string} url - URL a ser verificada
+ * @returns {boolean} - Se a URL é segura
+ */
+function urlSegura(url) {
+    if (!url) return false;
+    
+    try {
+        const urlObj = new URL(url);
+        // Apenas permitir protocolos seguros
+        return ['http:', 'https:'].includes(urlObj.protocol);
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Detectar e prevenir ataques de clickjacking
+ */
+function prevenirClickjacking() {
+    // Verificar se a página está sendo carregada em um iframe
+    if (window.top !== window.self) {
+        // A página está em um iframe, redirecionar para o top
+        window.top.location = window.self.location;
+    }
+}
+
+/**
+ * Monitorar atividade suspeita
+ */
+function monitorarAtividadeSuspeita() {
+    let tentativasLogin = 0;
+    let ultimaTentativa = 0;
+    
+    return {
+        registrarTentativaLogin: function(sucesso) {
+            const agora = Date.now();
+            
+            if (!sucesso) {
+                tentativasLogin++;
+                ultimaTentativa = agora;
+                
+                // Se muitas tentativas em pouco tempo
+                if (tentativasLogin > 3 && (agora - ultimaTentativa) < 300000) { // 5 minutos
+                    securityLog(LOG_LEVELS.SECURITY, 'Possível ataque de força bruta detectado', {
+                        tentativas: tentativasLogin,
+                        janelaTempo: '5 minutos'
+                    });
+                }
+            } else {
+                // Reset ao fazer login com sucesso
+                tentativasLogin = 0;
+            }
+        }
+    };
+}
+
+// Inicializar monitoramento
+const monitor = monitorarAtividadeSuspeita();
+
+// Inicializar proteções quando a página carregar
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Prevenir clickjacking
+        prevenirClickjacking();
+        
+        // Inicializar token CSRF
+        await obterCSRFToken();
+        console.log('Token CSRF inicializado');
+        
+        // Configurar monitoramento de formulários de login
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(event) {
+                // Monitorar tentativa de login
+                setTimeout(() => {
+                    // Verificar se houve redirecionamento (login bem-sucedido)
+                    const loginSucesso = window.location.pathname !== '/';
+                    monitor.registrarTentativaLogin(loginSucesso);
+                    registrarEventoLogin(loginSucesso, '');
+                }, 1000);
+            });
+        }
+        
+        // Configurar validação automática de entradas
+        const inputs = document.querySelectorAll('input[type="text"], textarea');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                this.value = validarEntrada(this.value);
+            });
+        });
+        
+    } catch (error) {
+        console.error('Falha ao inicializar recursos de segurança:', error);
+    }
+});
+
 // Exportar todas as funções e constantes
-export {
-    LOG_LEVELS,
-    ERROR_CODES,
-    sanitizeHTML,
-    setElementContent,
-    createSafeElement,
-    obterCSRFToken,
-    fetchSeguro,
-    verificarSessao,
-    securityLog,
-    registrarEventoLogin,
-    handleError,
-    processarDadosUsuario,
-    validarJWT
-};
+if (typeof module !== 'undefined' && module.exports) {
+    // Node.js
+    module.exports = {
+        LOG_LEVELS,
+        ERROR_CODES,
+        sanitizeHTML,
+        setElementContent,
+        createSafeElement,
+        obterCSRFToken,
+        fetchSeguro,
+        apiRequest,
+        verificarSessao,
+        securityLog,
+        registrarEventoLogin,
+        handleError,
+        processarDadosUsuario,
+        validarJWT,
+        validarEntrada,
+        urlSegura,
+        prevenirClickjacking
+    };
+} else {
+    // Browser
+    window.Security = {
+        LOG_LEVELS,
+        ERROR_CODES,
+        sanitizeHTML,
+        setElementContent,
+        createSafeElement,
+        obterCSRFToken,
+        fetchSeguro,
+        apiRequest,
+        verificarSessao,
+        securityLog,
+        registrarEventoLogin,
+        handleError,
+        processarDadosUsuario,
+        validarJWT,
+        validarEntrada,
+        urlSegura,
+        prevenirClickjacking
+    };
+}

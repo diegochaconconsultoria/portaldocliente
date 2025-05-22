@@ -3,9 +3,28 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
-const axios = require('axios'); // Adicionar axios para chamadas HTTP
-const https = require('https'); // Para lidar com certificados SSL
-const multer = require('multer'); // Para processar uploads de arquivos
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+
+// Carregar variáveis de ambiente
+require('dotenv').config();
+
+// Importar middlewares
+const { autenticacaoRequerida } = require('./app/middlewares/auth');
+const { protecaoCSRF, obterTokenCSRF } = require('./app/middlewares/csrf');
+const { 
+    sanitizarEntradas, 
+    validarLogin, 
+    validarFiltroPedidos, 
+    validarFiltroNotas 
+} = require('./app/middlewares/validation');
+
+// Importar serviços
+const authService = require('./app/services/auth-service');
+const auditService = require('./app/services/audit-service');
+const apiProxy = require('./app/services/api-proxy');
+const apiMonitor = require('./app/services/api-monitor');
 
 // Configure multer para processar uploads de arquivos
 const upload = multer({
@@ -29,52 +48,95 @@ const upload = multer({
 // Configuração do app
 const app = express();
 
+// Aplicar políticas de segurança básicas
+app.use(helmet());
+
+// Configurar Content Security Policy (CSP)
+app.use(
+    helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"]
+        }
+    })
+);
+
+// Outros cabeçalhos de segurança
+app.use(helmet.xssFilter());
+app.use(helmet.noSniff());
+app.use(helmet.frameguard({ action: 'deny' }));
+app.use(helmet.hsts({
+    maxAge: 15552000, // 180 dias em segundos
+    includeSubDomains: true,
+    preload: true
+}));
+
 // Middlewares
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Aplicar sanitização de entrada
+app.use(sanitizarEntradas);
+
+// Configuração de sessão segura
 app.use(session({
-    secret: 'sua-chave-secreta-aqui',
+    secret: process.env.SESSION_SECRET || 'sua-chave-secreta-aqui',
+    name: 'mvk_portal_sid', // Nome personalizado para o cookie de sessão
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Defina como true se estiver usando HTTPS
-        maxAge: 3600000 // 1 hora em milissegundos
+        secure: process.env.NODE_ENV === 'production', // true em produção
+        httpOnly: true, // O cookie não pode ser acessado via JavaScript
+        maxAge: parseInt(process.env.SESSION_TIMEOUT || '3600', 10) * 1000, // Converter segundos para ms
+        sameSite: 'strict' // Prevenir CSRF
     }
 }));
 
+// Configuração para limitar taxa de requisições
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // limite de 100 requisições por IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Muitas requisições deste endereço IP. Tente novamente mais tarde.',
+        code: 'RATE_LIMIT_EXCEEDED'
+    }
+});
+
+// Aplicar limitador de taxa a todas as requisições
+app.use(limiter);
+
+// Limiter mais restritivo para rotas sensíveis (login, registro, etc.)
+const loginLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 10, // limite de 10 tentativas por IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Muitas tentativas de login. Tente novamente mais tarde.',
+        code: 'LOGIN_RATE_LIMIT_EXCEEDED'
+    }
+});
+
 // Configuração do transportador de email
-const transporter = nodemailer.createTransport({
-    host: 'email-ssl.com.br',
-    port: 465,
+const transporter = nodemailer.createTransporter({
+    host: process.env.EMAIL_HOST || 'email-ssl.com.br',
+    port: parseInt(process.env.EMAIL_PORT || '465', 10),
     secure: true, // true para porta 465, false para outras portas
     auth: {
-        user: 'portaldocliente@mvk.com.br',
-        pass: '@Vendas3200'
+        user: process.env.EMAIL_USER || 'portaldocliente@mvk.com.br',
+        pass: process.env.EMAIL_PASS || '@Vendas3200'
     }
 });
-
-// Agente HTTPS que ignora a validação de certificados SSL (para desenvolvimento)
-// Em produção, é recomendável configurar certificados válidos
-const httpsAgent = new https.Agent({
-    rejectUnauthorized: false // Ignora erros de certificado SSL
-});
-
-// Verificar se o usuário está autenticado (middleware)
-const autenticacaoRequerida = (req, res, next) => {
-    if (!req.session.usuario) {
-        return res.redirect('/');
-    }
-    next();
-};
-
-const apiPedidosRouter = require('./app/routes/api/api-pedidos');
-const apiNotasFiscaisRouter = require('./app/routes/api/api-notas-fiscais'); 
-const apiFinanceiroRouter = require('./app/routes/api/api-financeiro');
-
-app.use('/api/pedidos', apiPedidosRouter);
-app.use('/api/notas-fiscais', apiNotasFiscaisRouter);
-app.use('/api/financeiro', apiFinanceiroRouter);
 
 // Função auxiliar para formatar o tamanho do arquivo
 function formatFileSize(bytes) {
@@ -83,52 +145,74 @@ function formatFileSize(bytes) {
     else return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
+// Função para mascarar CNPJ
+function maskCNPJ(cnpj) {
+    if (!cnpj) return '';
+    
+    // Remover formatação existente
+    cnpj = cnpj.replace(/[^\d]/g, '');
+    
+    // Aplicar máscara: mostrar apenas os últimos 4 dígitos
+    if (cnpj.length === 14) {
+        return `**.***.***/****-${cnpj.substr(cnpj.length - 2)}`;
+    }
+    
+    return cnpj;
+}
+
+// Iniciar monitoramento da API
+const monitoringInterval = apiMonitor.iniciarMonitoramento();
+
+// Rota para obter token CSRF
+app.get('/api/csrf-token', protecaoCSRF, obterTokenCSRF);
+
 // Rotas
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.post('/api/login', async (req, res) => {
+// Rota de login com todas as validações e proteções
+app.post('/api/login', loginLimiter, validarLogin, async (req, res) => {
     try {
         const { email, cnpj, password } = req.body;
 
-        // Valida os campos
-        if (!email || !cnpj || !password) {
-            return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
-        }
-
         // Remove caracteres especiais do CNPJ (pontos, traços e barras)
         const cnpjNumerico = cnpj.replace(/[^\d]/g, '');
-
-        // Configuração da requisição para a API externa
-        const apiConfig = {
-            method: 'post',
-            url: 'https://192.168.0.251:8409/rest/VKPCLILOGIN',
-            auth: {
-                username: 'admin',
-                password: 'msmvk'
-            },
-            data: {
-                "email": email,
-                "Pass": password,
-                "cgc": cnpjNumerico
-            },
-            httpsAgent: httpsAgent // Ignora erros de certificado SSL
-        };
+        
+        // Verificar bloqueio por tentativas
+        const identificador = `${email}:${cnpjNumerico}`;
+        const bloqueio = authService.verificarBloqueio(identificador);
+        
+        if (bloqueio.bloqueado) {
+            return res.status(429).json({
+                message: `Muitas tentativas de login. Tente novamente em ${bloqueio.tempoRestante} minutos.`,
+                code: 'TOO_MANY_ATTEMPTS'
+            });
+        }
 
         try {
-            // Faz a requisição para a API externa
-            const apiResponse = await axios(apiConfig);
-            const userData = apiResponse.data;
+            // Usar o proxy da API para fazer login
+            const userData = await apiProxy.fazerLogin(email, password, cnpjNumerico);
 
             // Verifica se a autenticação foi bem-sucedida
             if (userData.sucess === true) {
-                // Cria a sessão do usuário com os dados retornados pela API
+                // Registrar login bem-sucedido e resetar tentativas
+                authService.registrarTentativaLogin(identificador, true);
+                
+                // Registrar login nos logs de auditoria
+                await auditService.logLogin({
+                    codigo: userData.Codigo,
+                    nome: userData.Nome,
+                    email: userData.email
+                }, req.ip);
+                
+                // Criar a sessão
                 req.session.usuario = {
                     codigo: userData.Codigo,
                     nome: userData.Nome,
                     cnpj: userData.cgc,
-                    email: userData.email
+                    email: userData.email,
+                    ultimoAcesso: Date.now()
                 };
 
                 return res.status(200).json({ 
@@ -139,23 +223,27 @@ app.post('/api/login', async (req, res) => {
                     }
                 });
             } else {
+                // Registrar tentativa falha
+                authService.registrarTentativaLogin(identificador, false);
+                
+                // Registrar falha nos logs de auditoria
+                await auditService.logLoginFailed({ email }, req.ip, 'Credenciais inválidas');
+                
                 // Autenticação falhou
                 return res.status(401).json({ message: 'Credenciais inválidas' });
             }
         } catch (apiError) {
-            console.error('Erro na chamada da API externa:', apiError);
+            console.error('Erro na comunicação com API de login:', apiError);
             
-            // Verifica se temos uma resposta da API mesmo com erro
-            if (apiError.response && apiError.response.data) {
-                return res.status(401).json({ 
-                    message: 'Falha na autenticação',
-                    error: apiError.response.data
-                });
-            }
+            // Registrar tentativa falha em caso de erro
+            authService.registrarTentativaLogin(identificador, false);
             
-            // Erro de conexão ou outro problema
+            // Registrar falha nos logs de auditoria
+            await auditService.logLoginFailed({ email }, req.ip, 'Erro na API de autenticação');
+            
+            // Retornar erro genérico para não expor detalhes da API
             return res.status(500).json({ 
-                message: 'Erro ao conectar com o servidor de autenticação' 
+                message: 'Erro ao conectar com o servidor de autenticação. Tente novamente mais tarde.' 
             });
         }
     } catch (error) {
@@ -164,6 +252,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Rota para solicitar acesso
 app.post('/api/solicitarAcesso', async (req, res) => {
     try {
         const { nome, cnpj, email, telefone, contato, consentimento } = req.body;
@@ -331,7 +420,6 @@ app.get('/financeiro', autenticacaoRequerida, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'financeiro.html'));
 });
 
-
 // Rota para a página SAC
 app.get('/sac', autenticacaoRequerida, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'sac.html'));
@@ -342,21 +430,43 @@ app.get('/registro', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'registro.html'));
 });
 
-// Rota para obter dados do usuário logado
+// Rota para obter dados do usuário logado (protegida)
 app.get('/api/usuario', autenticacaoRequerida, (req, res) => {
-    res.json({ 
-        usuario: req.session.usuario 
-    });
+    // Não expor dados sensíveis
+    const usuario = {
+        codigo: req.session.usuario.codigo,
+        nome: req.session.usuario.nome,
+        email: req.session.usuario.email,
+        cnpj: maskCNPJ(req.session.usuario.cnpj) // Mascarar o CNPJ
+    };
+    
+    res.json({ usuario });
 });
 
 // Rota para logout
-app.post('/api/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ message: 'Erro ao encerrar a sessão' });
-        }
-        res.json({ message: 'Sessão encerrada com sucesso' });
-    });
+app.post('/api/logout', protecaoCSRF, async (req, res) => {
+    try {
+        // Guardar informações do usuário antes de destruir a sessão
+        const usuario = req.session.usuario;
+        
+        // Destruir a sessão
+        req.session.destroy(async (err) => {
+            if (err) {
+                console.error('Erro ao encerrar a sessão:', err);
+                return res.status(500).json({ message: 'Erro ao encerrar a sessão' });
+            }
+            
+            // Registrar logout nos logs de auditoria
+            if (usuario) {
+                await auditService.logLogout(usuario, req.ip);
+            }
+            
+            res.json({ message: 'Sessão encerrada com sucesso' });
+        });
+    } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+        res.status(500).json({ message: 'Ocorreu um erro ao tentar sair. Por favor, tente novamente.' });
+    }
 });
 
 // API para enviar solicitação de SAC
@@ -546,229 +656,75 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
     }
 });
 
-
-// API para buscar pedidos do cliente
-app.get('/api/pedidos', autenticacaoRequerida, async (req, res) => {
+// Rota para verificar status da API
+app.get('/api/status', autenticacaoRequerida, async (req, res) => {
     try {
-        // Obter o código do cliente da sessão
-        const codigoCliente = req.session.usuario.codigo;
+        const relatorio = await apiMonitor.gerarRelatorio();
         
-        // Obter parâmetros de filtro da query
-        const { dataInicio, dataFim, proposta, pedido } = req.query;
-        
-        // Obter parâmetros de paginação
-        const pagina = parseInt(req.query.pagina) || 1;
-        const itensPorPagina = 10;
-        
-        // Aqui você faria a chamada à API externa real
-        // Por enquanto, vamos simular dados mockados
-        
-        // Simular pedidos mockados (em um cenário real, esses dados viriam da API externa)
-        const pedidosMock = [
-            {
-                id: '1',
-                numero: '123456',
-                proposta: '78945',
-                data: '2025-03-15',
-                valorTotal: 1250.75,
-                status: 'aprovado',
-                previsaoEntrega: '2025-04-30',
-                formaPagamento: 'Boleto',
-                itens: [
-                    {
-                        codigo: 'PRD001',
-                        descricao: 'Produto A - Modelo XYZ',
-                        quantidade: 2,
-                        unidade: 'UN',
-                        valorUnitario: 450.50,
-                        valorTotal: 901.00
-                    },
-                    {
-                        codigo: 'PRD002',
-                        descricao: 'Produto B - Modelo ABC',
-                        quantidade: 1,
-                        unidade: 'UN',
-                        valorUnitario: 349.75,
-                        valorTotal: 349.75
-                    }
-                ]
-            },
-            {
-                id: '2',
-                numero: '123457',
-                proposta: '78946',
-                data: '2025-03-20',
-                valorTotal: 2780.00,
-                status: 'em_producao',
-                previsaoEntrega: '2025-05-10',
-                formaPagamento: 'Cartão de Crédito',
-                itens: [
-                    {
-                        codigo: 'PRD003',
-                        descricao: 'Produto C - Modelo 123',
-                        quantidade: 4,
-                        unidade: 'UN',
-                        valorUnitario: 695.00,
-                        valorTotal: 2780.00
-                    }
-                ]
-            },
-            {
-                id: '3',
-                numero: '123458',
-                proposta: null,
-                data: '2025-03-25',
-                valorTotal: 899.90,
-                status: 'pendente',
-                previsaoEntrega: null,
-                formaPagamento: 'Transferência',
-                itens: [
-                    {
-                        codigo: 'PRD004',
-                        descricao: 'Produto D - Modelo Premium',
-                        quantidade: 1,
-                        unidade: 'UN',
-                        valorUnitario: 899.90,
-                        valorTotal: 899.90
-                    }
-                ]
-            }
-        ];
-        
-        // Filtrar os pedidos com base nos parâmetros recebidos
-        let pedidosFiltrados = [...pedidosMock];
-        
-        if (dataInicio) {
-            pedidosFiltrados = pedidosFiltrados.filter(p => new Date(p.data) >= new Date(dataInicio));
-        }
-        
-        if (dataFim) {
-            pedidosFiltrados = pedidosFiltrados.filter(p => new Date(p.data) <= new Date(dataFim));
-        }
-        
-        if (proposta) {
-            pedidosFiltrados = pedidosFiltrados.filter(p => p.proposta && p.proposta.includes(proposta));
-        }
-        
-        if (pedido) {
-            pedidosFiltrados = pedidosFiltrados.filter(p => p.numero.includes(pedido));
-        }
-        
-        // Calcular paginação
-        const totalPedidos = pedidosFiltrados.length;
-        const totalPaginas = Math.ceil(totalPedidos / itensPorPagina);
-        const inicio = (pagina - 1) * itensPorPagina;
-        const fim = inicio + itensPorPagina;
-        const pedidosPaginados = pedidosFiltrados.slice(inicio, fim);
-        
-        // Responder com os dados
         res.json({
-            pedidos: pedidosPaginados,
-            totalPedidos,
-            pagina,
-            totalPaginas,
-            itensPorPagina
+            message: 'Status das APIs externas',
+            ...relatorio
         });
-        
     } catch (error) {
-        console.error('Erro ao buscar pedidos:', error);
-        res.status(500).json({ message: 'Erro ao buscar pedidos. Por favor, tente novamente mais tarde.' });
+        console.error('Erro ao obter status da API:', error);
+        res.status(500).json({
+            message: 'Erro ao obter status das APIs',
+            error: 'Não foi possível verificar o status das APIs externas'
+        });
     }
 });
 
-// API para buscar detalhes de um pedido específico
-app.get('/api/pedidos/:id', autenticacaoRequerida, async (req, res) => {
+// Rota para estatísticas de monitoramento
+app.get('/api/monitoring/stats', autenticacaoRequerida, (req, res) => {
     try {
-        const pedidoId = req.params.id;
+        const stats = apiMonitor.obterEstatisticas();
         
-        // Aqui você faria a chamada à API externa real
-        // Por enquanto, vamos simular dados mockados
-        
-        // Simular detalhes do pedido (em um cenário real, esses dados viriam da API externa)
-        const pedidosMock = {
-            '1': {
-                id: '1',
-                numero: '123456',
-                proposta: '78945',
-                data: '2025-03-15',
-                valorTotal: 1250.75,
-                status: 'aprovado',
-                previsaoEntrega: '2025-04-30',
-                formaPagamento: 'Boleto',
-                itens: [
-                    {
-                        codigo: 'PRD001',
-                        descricao: 'Produto A - Modelo XYZ',
-                        quantidade: 2,
-                        unidade: 'UN',
-                        valorUnitario: 450.50,
-                        valorTotal: 901.00
-                    },
-                    {
-                        codigo: 'PRD002',
-                        descricao: 'Produto B - Modelo ABC',
-                        quantidade: 1,
-                        unidade: 'UN',
-                        valorUnitario: 349.75,
-                        valorTotal: 349.75
-                    }
-                ]
-            },
-            '2': {
-                id: '2',
-                numero: '123457',
-                proposta: '78946',
-                data: '2025-03-20',
-                valorTotal: 2780.00,
-                status: 'em_producao',
-                previsaoEntrega: '2025-05-10',
-                formaPagamento: 'Cartão de Crédito',
-                itens: [
-                    {
-                        codigo: 'PRD003',
-                        descricao: 'Produto C - Modelo 123',
-                        quantidade: 4,
-                        unidade: 'UN',
-                        valorUnitario: 695.00,
-                        valorTotal: 2780.00
-                    }
-                ]
-            },
-            '3': {
-                id: '3',
-                numero: '123458',
-                proposta: null,
-                data: '2025-03-25',
-                valorTotal: 899.90,
-                status: 'pendente',
-                previsaoEntrega: null,
-                formaPagamento: 'Transferência',
-                itens: [
-                    {
-                        codigo: 'PRD004',
-                        descricao: 'Produto D - Modelo Premium',
-                        quantidade: 1,
-                        unidade: 'UN',
-                        valorUnitario: 899.90,
-                        valorTotal: 899.90
-                    }
-                ]
-            }
-        };
-        
-        const pedido = pedidosMock[pedidoId];
-        
-        if (!pedido) {
-            return res.status(404).json({ message: 'Pedido não encontrado' });
-        }
-        
-        // Responder com os dados do pedido
-        res.json(pedido);
-        
+        res.json({
+            message: 'Estatísticas de monitoramento',
+            ...stats
+        });
     } catch (error) {
-        console.error('Erro ao buscar detalhes do pedido:', error);
-        res.status(500).json({ message: 'Erro ao buscar detalhes do pedido. Por favor, tente novamente mais tarde.' });
+        console.error('Erro ao obter estatísticas:', error);
+        res.status(500).json({
+            message: 'Erro ao obter estatísticas de monitoramento'
+        });
     }
+});
+
+// Importar rotas da API
+const apiPedidosRouter = require('./app/routes/api/api-pedidos');
+const apiNotasFiscaisRouter = require('./app/routes/api/api-notas-fiscais'); 
+const apiFinanceiroRouter = require('./app/routes/api/api-financeiro');
+
+// Aplicar as rotas da API com proteção CSRF e autenticação
+app.use('/api/pedidos', protecaoCSRF, autenticacaoRequerida, validarFiltroPedidos, apiPedidosRouter);
+app.use('/api/notas-fiscais', protecaoCSRF, autenticacaoRequerida, validarFiltroNotas, apiNotasFiscaisRouter);
+app.use('/api/financeiro', protecaoCSRF, autenticacaoRequerida, apiFinanceiroRouter);
+
+// Middleware para tratar erros
+app.use((err, req, res, next) => {
+    console.error('Erro na aplicação:', err);
+    
+    // Evitar expor detalhes técnicos em produção
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    res.status(err.status || 500).json({
+        message: 'Ocorreu um erro no servidor',
+        error: isProduction ? 'Erro interno' : err.message
+    });
+});
+
+// Graceful shutdown - parar monitoramento ao encerrar o servidor
+process.on('SIGTERM', () => {
+    console.log('Encerrando servidor...');
+    apiMonitor.pararMonitoramento(monitoringInterval);
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('Encerrando servidor...');
+    apiMonitor.pararMonitoramento(monitoringInterval);
+    process.exit(0);
 });
 
 // Inicia o servidor
@@ -776,5 +732,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
     console.log(`Portal disponível em: http://localhost:${PORT}`);
+    console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Data e hora de inicialização: ${new Date().toLocaleString('pt-BR')}`);
 });

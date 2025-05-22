@@ -44,49 +44,79 @@
             <section id="pedidos-section" class="pedidos-section">
                 <h2>Consulta de Pedidos</h2>
 
+                <!-- Substitua a seção de filtros em pedidos.html -->
                 <div class="filtro-container">
-                    <h3>Filtros de Busca</h3>
-                    <form id="pedidosFilterForm" class="filtro-form">
-                        <div class="filtro-row">
-                            <div class="filtro-item todos-toggle">
-                                <label for="todosToggle">Todos os Pedidos:</label>
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="todosToggle" class="toggle-input">
-                                    <label for="todosToggle" class="toggle-label">
-                                        <span class="toggle-option">Não</span>
-                                        <span class="toggle-option">Sim</span>
-                                    </label>
+                    <div class="filtro-header">
+                        <h3>Filtros de Busca</h3>
+                        <button id="toggleFiltros" class="btn-toggle-filtros">
+                            <i class="icon-expand">▼</i>
+                        </button>
+                    </div>
+
+                    <div id="filtrosContent" class="filtros-content">
+                        
+
+                        <form id="pedidosFilterForm" class="filtro-form">
+                            <!-- Conteúdo atual do form de filtros -->
+                            <div class="filtro-row">
+                                <div class="filtro-item todos-toggle">
+                                    <label for="todosToggle">Todos os Pedidos:</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="todosToggle" class="toggle-input">
+                                        <label for="todosToggle" class="toggle-label">
+                                            <span class="toggle-option">Não</span>
+                                            <span class="toggle-option">Sim</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                             </div>
+
+                            <!-- Resto do formulário de filtros atual -->
+                            <div class="filtro-row">
+                                <div class="filtro-item">
+                                    <label for="dataInicio">Data De:</label>
+                                    <input type="date" id="dataInicio" class="filtro-input">
+                                </div>
+                                <div class="filtro-item">
+                                    <label for="dataFim">Data Até:</label>
+                                    <input type="date" id="dataFim" class="filtro-input">
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="filtro-row">
-                            <div class="filtro-item">
-                                <label for="dataInicio">Data De:</label>
-                                <input type="date" id="dataInicio" class="filtro-input">
+                            <div class="filtro-row">
+                                <div class="filtro-item">
+                                    <label for="proposta">Proposta:</label>
+                                    <input type="text" id="proposta" placeholder="Número da proposta"
+                                        class="filtro-input">
+                                </div>
+                                <div class="filtro-item">
+                                    <label for="pedido">Pedido:</label>
+                                    <input type="text" id="pedido" placeholder="Número do pedido" class="filtro-input">
+                                </div>
                             </div>
-                            <div class="filtro-item">
-                                <label for="dataFim">Data Até:</label>
-                                <input type="date" id="dataFim" class="filtro-input">
-                            </div>
-                        </div>
 
-                        <div class="filtro-row">
-                            <div class="filtro-item">
-                                <label for="proposta">Proposta:</label>
-                                <input type="text" id="proposta" placeholder="Número da proposta" class="filtro-input">
+                            <div class="filtro-actions">
+                                <button type="button" id="limparFiltros" class="btn-secundario">Limpar Filtros</button>
+                                <button type="button" id="buscarBtn" class="btn-primary">Buscar Pedidos</button>
                             </div>
-                            <div class="filtro-item">
-                                <label for="pedido">Pedido:</label>
-                                <input type="text" id="pedido" placeholder="Número do pedido" class="filtro-input">
-                            </div>
-                        </div>
-
-                        <div class="filtro-actions">
-                            <button type="button" id="buscarBtn" class="btn-primary">Buscar Pedidos</button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
+
+                <div class="view-toggle">
+                    <button id="viewTable" class="view-toggle-btn active" title="Visualizar em tabela">
+                        <i class="icon-table">📋</i> Tabela
+                    </button>
+                    <button id="viewCards" class="view-toggle-btn" title="Visualizar em cards">
+                        <i class="icon-card">🗂️</i> Cards
+                    </button>
+                </div>
+
+                <!-- Container para visualização em cards (inicialmente oculto) -->
+                <div id="pedidosCards" class="pedidos-cards hidden"></div>
+
+
 
                 <!-- Indicador de carregamento -->
                 <div id="loadingIndicator" class="loading-indicator hidden">
@@ -247,7 +277,8 @@
         </div>
         <div class="modal-footer">
             <div class="footer-buttons">
-                <button id="btn-visualizar-producao" class="btn-primary hidden" onclick="visualizarProducao(this.getAttribute('data-pedido'))">
+                <button id="btn-visualizar-producao" class="btn-primary hidden"
+                    onclick="visualizarProducao(this.getAttribute('data-pedido'))">
                     <i class="icon-production"></i> Visualizar Produção
                 </button>
                 <button id="btn-download-nf" class="btn-primary hidden" onclick="downloadNotaFiscal()">

@@ -37,6 +37,9 @@ window.onload = function () {
     });
 })();
 
+// Variável global para armazenar a chave de acesso atual
+let chaveAcessoAtual = '';
+
 // Função para navegação para a página de pedidos via menu
 function navegarParaPedidos(event) {
     // Prevenir a navegação padrão
@@ -74,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Configuração inicial da página de pedidos
     inicializarPaginaPedidos();
+    inicializarAlternanciaVisualizacao();
 
     // Garantir que os modais estão fechados no início
     document.querySelectorAll('.modal').forEach(function (modal) {
@@ -170,7 +174,50 @@ function inicializarPaginaPedidos() {
     console.log('Filtros de pedidos inicializados com sucesso');
 }
 
-// Função para buscar pedidos com base nos filtros
+// Função para inicializar a alternância de visualização entre tabela e cards
+function inicializarAlternanciaVisualizacao() {
+    const viewTableBtn = document.getElementById('viewTable');
+    const viewCardsBtn = document.getElementById('viewCards');
+    const tabelaPedidos = document.getElementById('tabelaPedidos');
+    const pedidosCards = document.getElementById('pedidosCards');
+    
+    // Verificar se os elementos existem
+    if (!viewTableBtn || !viewCardsBtn || !tabelaPedidos || !pedidosCards) {
+        console.error('Elementos de alternância de visualização não encontrados');
+        return;
+    }
+    
+    // Verificar preferência salva
+    const visualizacaoPrefirida = localStorage.getItem('pedidosVisualizacao') || 'table';
+    
+    // Definir visualização inicial
+    if (visualizacaoPrefirida === 'cards') {
+        tabelaPedidos.classList.add('hidden');
+        pedidosCards.classList.remove('hidden');
+        viewTableBtn.classList.remove('active');
+        viewCardsBtn.classList.add('active');
+    }
+    
+    // Evento para trocar para visualização em tabela
+    viewTableBtn.addEventListener('click', function() {
+        tabelaPedidos.classList.remove('hidden');
+        pedidosCards.classList.add('hidden');
+        viewTableBtn.classList.add('active');
+        viewCardsBtn.classList.remove('active');
+        localStorage.setItem('pedidosVisualizacao', 'table');
+    });
+    
+    // Evento para trocar para visualização em cards
+    viewCardsBtn.addEventListener('click', function() {
+        tabelaPedidos.classList.add('hidden');
+        pedidosCards.classList.remove('hidden');
+        viewTableBtn.classList.remove('active');
+        viewCardsBtn.classList.add('active');
+        localStorage.setItem('pedidosVisualizacao', 'cards');
+    });
+}
+
+// Função para buscar pedidos com base nos filtros usando o wrapper seguro de API
 async function buscarPedidos() {
     console.log('Iniciando busca de pedidos...');
 
@@ -203,31 +250,17 @@ async function buscarPedidos() {
         if (pedido.value.trim()) url += `pedido=${encodeURIComponent(pedido.value.trim())}&`;
     }
 
-    url = url.endsWith('&') ? url.slice(0, -1) : url; // Remover & final se houver
+    url = url.endsWith('&') ? url.slice(0, -1) : url;
     console.log('URL de consulta:', url);
 
     try {
-        // Fazer requisição à API usando GET
-        console.log('Enviando requisição GET para a API de pedidos');
-        const response = await fetch(url);
+        // Usar o wrapper seguro de API
+        const data = await Security.apiRequest(url, {
+            method: 'GET',
+            timeout: 30000, // 30 segundos para pedidos
+            retries: 2
+        });
 
-        console.log('Status da resposta:', response.status);
-
-        if (!response.ok) {
-            // Se a resposta não for 2xx
-            if (response.status === 401) {
-                console.error('Erro 401: Não autorizado');
-                alert('Sua sessão expirou. Por favor, faça login novamente.');
-                window.location.href = '/';
-                return;
-            }
-
-            const errorText = await response.text();
-            console.error('Texto do erro:', errorText);
-            throw new Error(`Erro ao buscar pedidos: ${response.status}`);
-        }
-
-        const data = await response.json();
         console.log('Dados recebidos da API:', data);
 
         // Processar os dados conforme o formato da resposta
@@ -259,6 +292,7 @@ async function buscarPedidos() {
 function preencherTabelaPedidos(pedidos) {
     console.log('Preenchendo tabela com', pedidos.length, 'pedidos');
     const tabelaBody = document.getElementById('tabelaPedidosBody');
+    const pedidosCards = document.getElementById('pedidosCards');
 
     if (!tabelaBody) {
         console.error('Elemento tabelaPedidosBody não encontrado');
@@ -266,31 +300,114 @@ function preencherTabelaPedidos(pedidos) {
     }
 
     tabelaBody.innerHTML = ''; // Limpa o conteúdo atual
+    if (pedidosCards) pedidosCards.innerHTML = ''; // Limpa os cards, se existirem
 
     pedidos.forEach((pedido, index) => {
         console.log(`Processando pedido ${index + 1}:`, pedido);
-        const row = document.createElement('tr');
-
+        
         // As datas já estão vindo no formato DD/MM/YYYY, então apenas usamos diretamente
         let dataFormatada = pedido.Data || 'N/A';
 
+        // Criar linha da tabela
+        const row = document.createElement('tr');
+        
         // Criar células da linha adaptadas ao formato de dados
         row.innerHTML = `
-    <td data-label="Número">${pedido.Numero || 'N/A'}</td>
-    <td data-label="Proposta">${pedido.Proposta || 'N/A'}</td>
-    <td data-label="Data">${dataFormatada}</td>
-    <td data-label="Operação">${pedido.Operacao || 'N/A'}</td>
-    <td data-label="Ações">
-        <button type="button" class="btn-detalhes" onclick="verDetalhesPedido('${pedido.Numero}')">
-            Detalhes
-        </button>
-    </td>
+            <td data-label="Número">${pedido.Numero || 'N/A'}</td>
+            <td data-label="Proposta">${pedido.Proposta || 'N/A'}</td>
+            <td data-label="Data">${dataFormatada}</td>
+            <td data-label="Operação">${pedido.Operacao || 'N/A'}</td>
+            <td data-label="Ações">
+                <button type="button" class="btn-detalhes" onclick="verDetalhesPedido('${pedido.Numero}')">
+                    <i class="icon-detail">📋</i> Ver Detalhes
+                </button>
+            </td>
         `;
 
         tabelaBody.appendChild(row);
+        
+        // Se estiver usando o modo de visualização em cards, criar também um card
+        if (pedidosCards) {
+            const card = document.createElement('div');
+            card.className = 'pedido-card';
+            
+            card.innerHTML = `
+                <div class="pedido-card-header">
+                    <div class="pedido-card-title">
+                        <h3>Pedido #${pedido.Numero || 'N/A'}</h3>
+                    </div>
+                </div>
+                <div class="pedido-card-body">
+                    <div class="pedido-card-info">
+                        <p>
+                            <span class="label">Proposta:</span>
+                            <span class="value">${pedido.Proposta || 'N/A'}</span>
+                        </p>
+                        <p>
+                            <span class="label">Data:</span>
+                            <span class="value">${dataFormatada}</span>
+                        </p>
+                        <p>
+                            <span class="label">Operação:</span>
+                            <span class="value">${pedido.Operacao || 'N/A'}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="pedido-card-footer">
+                    <button type="button" class="btn-detalhes" onclick="verDetalhesPedido('${pedido.Numero}')">
+                        <i class="icon-detail">📋</i> Ver Detalhes
+                    </button>
+                </div>
+            `;
+            
+            pedidosCards.appendChild(card);
+        }
     });
 
     console.log('Tabela preenchida com sucesso');
+}
+
+// Função para inicializar a alternância de visualização entre tabela e cards
+function inicializarAlternanciaVisualizacao() {
+    const viewTableBtn = document.getElementById('viewTable');
+    const viewCardsBtn = document.getElementById('viewCards');
+    const tabelaPedidos = document.getElementById('tabelaPedidos');
+    const pedidosCards = document.getElementById('pedidosCards');
+    
+    // Verificar se os elementos existem
+    if (!viewTableBtn || !viewCardsBtn || !tabelaPedidos || !pedidosCards) {
+        console.error('Elementos de alternância de visualização não encontrados');
+        return;
+    }
+    
+    // Verificar preferência salva
+    const visualizacaoPrefirida = localStorage.getItem('pedidosVisualizacao') || 'table';
+    
+    // Definir visualização inicial
+    if (visualizacaoPrefirida === 'cards') {
+        tabelaPedidos.classList.add('hidden');
+        pedidosCards.classList.remove('hidden');
+        viewTableBtn.classList.remove('active');
+        viewCardsBtn.classList.add('active');
+    }
+    
+    // Evento para trocar para visualização em tabela
+    viewTableBtn.addEventListener('click', function() {
+        tabelaPedidos.classList.remove('hidden');
+        pedidosCards.classList.add('hidden');
+        viewTableBtn.classList.add('active');
+        viewCardsBtn.classList.remove('active');
+        localStorage.setItem('pedidosVisualizacao', 'table');
+    });
+    
+    // Evento para trocar para visualização em cards
+    viewCardsBtn.addEventListener('click', function() {
+        tabelaPedidos.classList.add('hidden');
+        pedidosCards.classList.remove('hidden');
+        viewTableBtn.classList.remove('active');
+        viewCardsBtn.classList.add('active');
+        localStorage.setItem('pedidosVisualizacao', 'cards');
+    });
 }
 
 // Função para visualizar detalhes de um pedido específico

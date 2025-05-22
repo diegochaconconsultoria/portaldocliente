@@ -1,31 +1,7 @@
-/**
- * Rotas da API para consulta de notas fiscais
- */
-
 const express = require('express');
 const router = express.Router();
 const { autenticacaoRequerida } = require('../../middlewares/auth');
-const axios = require('axios');
-const https = require('https');
-
-// Configuração da API externa
-const API_CONFIG = {
-    // URLs da API externa
-    URLS: {
-        CONSULTA: 'https://192.168.0.251:8409/rest/VKPCLILNF',
-        DOWNLOAD: 'https://192.168.0.251:8409/rest/VKPCLIPNF'
-    },
-    // Credenciais para autenticação
-    AUTH: {
-        username: 'admin',
-        password: 'msmvk'
-    }
-};
-
-// Agente HTTPS que ignora a validação de certificados SSL (para desenvolvimento)
-const httpsAgent = new https.Agent({
-    rejectUnauthorized: false // Ignora erros de certificado SSL
-});
+const apiProxy = require('../../services/api-proxy');
 
 // Rota para buscar notas fiscais
 router.post('/', autenticacaoRequerida, async (req, res) => {
@@ -33,7 +9,6 @@ router.post('/', autenticacaoRequerida, async (req, res) => {
         const { Todos, CodigoCliente, Nota, Datade, Dataate } = req.body;
         
         console.log('Consultando notas fiscais para o cliente:', CodigoCliente);
-        console.log('Parâmetros:', { Todos, Nota, Datade, Dataate });
         
         // Validar parâmetros obrigatórios
         if (!CodigoCliente) {
@@ -42,36 +17,26 @@ router.post('/', autenticacaoRequerida, async (req, res) => {
             });
         }
         
+        // Preparar filtros
+        const filtros = {
+            Todos,
+            CodigoCliente,
+            Nota,
+            Datade,
+            Dataate
+        };
+        
         try {
-            // Fazer a requisição para a API externa
-            const apiResponse = await axios({
-                method: 'post',
-                url: API_CONFIG.URLS.CONSULTA,
-                auth: API_CONFIG.AUTH,
-                httpsAgent,
-                data: {
-                    Todos,
-                    CodigoCliente,
-                    Nota,
-                    Datade,
-                    Dataate
-                }
-            });
+            // Usar o proxy da API
+            const responseData = await apiProxy.buscarNotasFiscais(filtros);
             
-            console.log('Resposta da API externa:', apiResponse.data);
+            console.log('Dados de notas fiscais obtidos com sucesso');
             
             // Retornar os dados para o cliente
-            res.json(apiResponse.data);
+            res.json(responseData);
             
         } catch (apiError) {
-            console.error('Erro na chamada da API externa para notas fiscais:', apiError);
-            
-            if (apiError.response) {
-                return res.status(apiError.response.status).json({ 
-                    message: 'Erro ao buscar notas fiscais na API externa',
-                    error: apiError.response.data
-                });
-            }
+            console.error('Erro ao buscar notas fiscais via proxy:', apiError);
             
             // Simular resposta de "não encontrado" em caso de erro
             return res.json({ 
@@ -106,33 +71,21 @@ router.post('/download', autenticacaoRequerida, async (req, res) => {
             });
         }
         
-        // Fazer a requisição para a API externa
         try {
-            const apiResponse = await axios({
-                method: 'post',
-                url: API_CONFIG.URLS.DOWNLOAD,
-                auth: API_CONFIG.AUTH,
-                httpsAgent,
-                data: {
-                    chaveacesso
-                }
-            });
+            // Usar o proxy da API
+            const responseData = await apiProxy.downloadNotaFiscal(chaveacesso);
+            
+            console.log('Download de nota fiscal realizado com sucesso');
             
             // Retornar os dados para o cliente
-            res.json(apiResponse.data);
+            res.json(responseData);
             
         } catch (apiError) {
-            console.error('Erro na chamada da API externa para download de nota fiscal:', apiError);
-            
-            if (apiError.response) {
-                return res.status(apiError.response.status).json({ 
-                    message: 'Erro ao baixar nota fiscal na API externa',
-                    error: apiError.response.data
-                });
-            }
+            console.error('Erro ao fazer download de nota fiscal via proxy:', apiError);
             
             return res.status(500).json({ 
-                message: 'Erro ao conectar com a API externa' 
+                message: 'Erro ao baixar nota fiscal na API externa',
+                error: 'Não foi possível baixar a nota fiscal solicitada'
             });
         }
     } catch (error) {

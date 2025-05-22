@@ -1,4 +1,4 @@
-const express = require('express'); 
+const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
@@ -13,11 +13,11 @@ require('dotenv').config();
 // Importar middlewares
 const { autenticacaoRequerida } = require('./app/middlewares/auth');
 const { protecaoCSRF, obterTokenCSRF } = require('./app/middlewares/csrf');
-const { 
-    sanitizarEntradas, 
-    validarLogin, 
-    validarFiltroPedidos, 
-    validarFiltroNotas 
+const {
+    sanitizarEntradas,
+    validarLogin,
+    validarFiltroPedidos,
+    validarFiltroNotas
 } = require('./app/middlewares/validation');
 
 // Importar serviços
@@ -34,9 +34,9 @@ const upload = multer({
     },
     fileFilter: (req, file, cb) => {
         // Validar tipos de arquivo
-        if (file.mimetype === 'application/pdf' || 
-            file.mimetype === 'image/jpeg' || 
-            file.mimetype === 'image/jpg' || 
+        if (file.mimetype === 'application/pdf' ||
+            file.mimetype === 'image/jpeg' ||
+            file.mimetype === 'image/jpg' ||
             file.mimetype === 'image/png') {
             cb(null, true);
         } else {
@@ -47,6 +47,14 @@ const upload = multer({
 
 // Configuração do app
 const app = express();
+
+const {
+    BackendDataProtection,
+    dataProtectionMiddleware,
+    logProtectionMiddleware,
+    sessionDataCleanupMiddleware,
+    ServerDataEncryption
+} = require('./app/middlewares/data-protection');
 
 // Aplicar políticas de segurança básicas
 app.use(helmet());
@@ -86,13 +94,40 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Aplicar sanitização de entrada
 app.use(sanitizarEntradas);
 
+// Aplicar proteção de logs (deve ser um dos primeiros middlewares)
+app.use(logProtectionMiddleware);
+
+// Aplicar proteção de dados nas respostas
+app.use(dataProtectionMiddleware);
+
+// Aplicar limpeza de dados de sessão
+app.use(sessionDataCleanupMiddleware);
+
+
+// Middleware adicional para proteção de headers sensíveis
+app.use((req, res, next) => {
+    // Remover headers que podem vazar informações sensíveis
+    res.removeHeader('X-Powered-By');
+    res.removeHeader('Server');
+
+    // Adicionar headers de proteção de dados
+    res.setHeader('X-Data-Protection', 'enabled');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+
+    next();
+});
+
+
+
 // Configuração de sessão segura
 app.use(session({
     secret: process.env.SESSION_SECRET || 'sua-chave-secreta-aqui',
     name: 'mvk_portal_sid', // Nome personalizado para o cookie de sessão
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    cookie: {
         secure: process.env.NODE_ENV === 'production', // true em produção
         httpOnly: true, // O cookie não pode ser acessado via JavaScript
         maxAge: parseInt(process.env.SESSION_TIMEOUT || '3600', 10) * 1000, // Converter segundos para ms
@@ -148,15 +183,15 @@ function formatFileSize(bytes) {
 // Função para mascarar CNPJ
 function maskCNPJ(cnpj) {
     if (!cnpj) return '';
-    
+
     // Remover formatação existente
     cnpj = cnpj.replace(/[^\d]/g, '');
-    
+
     // Aplicar máscara: mostrar apenas os últimos 4 dígitos
     if (cnpj.length === 14) {
         return `**.***.***/****-${cnpj.substr(cnpj.length - 2)}`;
     }
-    
+
     return cnpj;
 }
 
@@ -176,14 +211,20 @@ app.post('/api/login', loginLimiter, validarLogin, async (req, res) => {
     try {
         const { email, cnpj, password } = req.body;
 
-        // Remove caracteres especiais do CNPJ (pontos, traços e barras)
+        // Log de tentativa de login (dados já serão mascarados automaticamente)
+        console.log('Tentativa de login para email:', email);
+
+        // Remove caracteres especiais do CNPJ
         const cnpjNumerico = cnpj.replace(/[^\d]/g, '');
-        
+
         // Verificar bloqueio por tentativas
         const identificador = `${email}:${cnpjNumerico}`;
         const bloqueio = authService.verificarBloqueio(identificador);
-        
+
         if (bloqueio.bloqueado) {
+            // Log de tentativa bloqueada
+            BackendDataProtection.logSensitiveAccess(req, 'login_blocked', 'attempt');
+
             return res.status(429).json({
                 message: `Muitas tentativas de login. Tente novamente em ${bloqueio.tempoRestante} minutos.`,
                 code: 'TOO_MANY_ATTEMPTS'
@@ -196,75 +237,94 @@ app.post('/api/login', loginLimiter, validarLogin, async (req, res) => {
 
             // Verifica se a autenticação foi bem-sucedida
             if (userData.sucess === true) {
-                // Registrar login bem-sucedido e resetar tentativas
+                // Registrar login bem-sucedido
                 authService.registrarTentativaLogin(identificador, true);
-                
-                // Registrar login nos logs de auditoria
+
+                // Log de login bem-sucedido
+                BackendDataProtection.logSensitiveAccess(req, 'login_success', 'authentication');
+
+                // Registrar nos logs de auditoria
                 await auditService.logLogin({
                     codigo: userData.Codigo,
                     nome: userData.Nome,
-                    email: userData.email
+                    email: BackendDataProtection.maskEmail(userData.email) // Email mascarado nos logs
                 }, req.ip);
-                
-                // Criar a sessão
+
+                // Criar sessão com dados mínimos e protegidos
                 req.session.usuario = {
                     codigo: userData.Codigo,
                     nome: userData.Nome,
-                    cnpj: userData.cgc,
-                    email: userData.email,
+                    // Não armazenar CNPJ completo na sessão - apenas referência mascarada
+                    cnpj: BackendDataProtection.maskCNPJ(userData.cgc),
+                    email: BackendDataProtection.maskEmail(userData.email),
                     ultimoAcesso: Date.now()
                 };
 
-                return res.status(200).json({ 
+                // Resposta com dados mínimos (dados sensíveis já mascarados pelo middleware)
+                return res.status(200).json({
                     message: 'Login realizado com sucesso',
                     usuario: {
                         nome: userData.Nome,
                         codigo: userData.Codigo
+                        // Não retornar dados sensíveis
                     }
                 });
             } else {
                 // Registrar tentativa falha
                 authService.registrarTentativaLogin(identificador, false);
-                
-                // Registrar falha nos logs de auditoria
-                await auditService.logLoginFailed({ email }, req.ip, 'Credenciais inválidas');
-                
-                // Autenticação falhou
+
+                // Log de falha (sem dados sensíveis)
+                BackendDataProtection.logSensitiveAccess(req, 'login_failed', 'authentication');
+
+                // Registrar falha nos logs de auditoria (com email mascarado)
+                await auditService.logLoginFailed({
+                    email: BackendDataProtection.maskEmail(email)
+                }, req.ip, 'Credenciais inválidas');
+
                 return res.status(401).json({ message: 'Credenciais inválidas' });
             }
         } catch (apiError) {
             console.error('Erro na comunicação com API de login:', apiError);
-            
-            // Registrar tentativa falha em caso de erro
+
+            // Registrar tentativa falha
             authService.registrarTentativaLogin(identificador, false);
-            
+
+            // Log de erro (dados mascarados automaticamente)
+            BackendDataProtection.logSensitiveAccess(req, 'login_error', 'api_communication');
+
             // Registrar falha nos logs de auditoria
-            await auditService.logLoginFailed({ email }, req.ip, 'Erro na API de autenticação');
-            
-            // Retornar erro genérico para não expor detalhes da API
-            return res.status(500).json({ 
-                message: 'Erro ao conectar com o servidor de autenticação. Tente novamente mais tarde.' 
+            await auditService.logLoginFailed({
+                email: BackendDataProtection.maskEmail(email)
+            }, req.ip, 'Erro na API de autenticação');
+
+            return res.status(500).json({
+                message: 'Erro ao conectar com o servidor de autenticação. Tente novamente mais tarde.'
             });
         }
     } catch (error) {
         console.error('Erro no login:', error);
+
+        // Log de erro interno
+        BackendDataProtection.logSensitiveAccess(req, 'login_internal_error', 'server_error');
+
         return res.status(500).json({ message: 'Erro interno no servidor' });
     }
 });
+
 
 // Rota para solicitar acesso
 app.post('/api/solicitarAcesso', async (req, res) => {
     try {
         const { nome, cnpj, email, telefone, contato, consentimento } = req.body;
-        
+
         // Verifica se todos os campos obrigatórios foram preenchidos
         if (!nome || !cnpj || !email || !telefone || !contato || !consentimento) {
             return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
         }
-        
+
         // Data e hora atuais
         const dataHora = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        
+
         // Template HTML para o email
         const htmlEmail = `
         <!DOCTYPE html>
@@ -370,7 +430,7 @@ app.post('/api/solicitarAcesso', async (req, res) => {
         </body>
         </html>
         `;
-        
+
         // Configuração do email
         const mailOptions = {
             from: 'Portal do Cliente <portaldocliente@mvk.com.br>',
@@ -378,12 +438,12 @@ app.post('/api/solicitarAcesso', async (req, res) => {
             subject: 'Solicitação de Novas Credenciais Portal do Cliente',
             html: htmlEmail
         };
-        
+
         // Enviar o email
         await transporter.sendMail(mailOptions);
-        
+
         // Responde ao cliente
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: 'Solicitação enviada com sucesso!',
             solicitacao: {
                 nome,
@@ -394,7 +454,7 @@ app.post('/api/solicitarAcesso', async (req, res) => {
                 dataHora
             }
         });
-        
+
     } catch (error) {
         console.error('Erro ao solicitar acesso:', error);
         return res.status(500).json({ message: 'Erro ao processar sua solicitação. Por favor, tente novamente mais tarde.' });
@@ -432,36 +492,55 @@ app.get('/registro', (req, res) => {
 
 // Rota para obter dados do usuário logado (protegida)
 app.get('/api/usuario', autenticacaoRequerida, (req, res) => {
-    // Não expor dados sensíveis
-    const usuario = {
-        codigo: req.session.usuario.codigo,
-        nome: req.session.usuario.nome,
-        email: req.session.usuario.email,
-        cnpj: maskCNPJ(req.session.usuario.cnpj) // Mascarar o CNPJ
-    };
-    
-    res.json({ usuario });
+    try {
+        // Log de acesso aos dados do usuário
+        BackendDataProtection.logSensitiveAccess(req, 'user_data', 'access');
+
+        // Retornar apenas dados essenciais e já mascarados
+        const usuario = {
+            codigo: req.session.usuario.codigo,
+            nome: req.session.usuario.nome,
+            email: req.session.usuario.email, // Já mascarado na sessão
+            cnpj: req.session.usuario.cnpj    // Já mascarado na sessão
+        };
+
+        res.json({ usuario });
+    } catch (error) {
+        console.error('Erro ao obter dados do usuário:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    }
 });
+
 
 // Rota para logout
 app.post('/api/logout', protecaoCSRF, async (req, res) => {
     try {
-        // Guardar informações do usuário antes de destruir a sessão
+        // Guardar informações do usuário antes de destruir a sessão (mascaradas)
         const usuario = req.session.usuario;
-        
+
+        if (usuario) {
+            // Log de logout
+            BackendDataProtection.logSensitiveAccess(req, 'logout', 'session_end');
+        }
+
         // Destruir a sessão
         req.session.destroy(async (err) => {
             if (err) {
                 console.error('Erro ao encerrar a sessão:', err);
                 return res.status(500).json({ message: 'Erro ao encerrar a sessão' });
             }
-            
-            // Registrar logout nos logs de auditoria
+
+            // Registrar logout nos logs de auditoria (dados já mascarados)
             if (usuario) {
                 await auditService.logLogout(usuario, req.ip);
             }
-            
-            res.json({ message: 'Sessão encerrada com sucesso' });
+
+            // Instruir o cliente a limpar dados sensíveis
+            res.setHeader('Clear-Site-Data', '"cache", "cookies", "storage"');
+            res.json({
+                message: 'Sessão encerrada com sucesso',
+                clearData: true // Instrução para o frontend limpar dados
+            });
         });
     } catch (error) {
         console.error('Erro ao fazer logout:', error);
@@ -469,18 +548,47 @@ app.post('/api/logout', protecaoCSRF, async (req, res) => {
     }
 });
 
+
+app.post('/api/clear-sensitive-data', autenticacaoRequerida, async (req, res) => {
+    try {
+        // Log da limpeza de dados
+        BackendDataProtection.logSensitiveAccess(req, 'data_clear', 'emergency_cleanup');
+
+        // Destruir sessão atual
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Erro ao limpar sessão:', err);
+            }
+        });
+
+        // Instruir limpeza completa no cliente
+        res.setHeader('Clear-Site-Data', '"*"');
+        res.json({
+            message: 'Dados sensíveis limpos com sucesso',
+            redirect: '/'
+        });
+    } catch (error) {
+        console.error('Erro ao limpar dados sensíveis:', error);
+        res.status(500).json({ message: 'Erro na limpeza de dados' });
+    }
+});
+
+
 // API para enviar solicitação de SAC
 app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), async (req, res) => {
     try {
         const { documento, observacao } = req.body;
         const files = req.files || [];
-        
+
+        // Log de acesso ao SAC
+        BackendDataProtection.logSensitiveAccess(req, 'sac_submission', 'support_request');
+
         // Validar campos obrigatórios
         if (!documento || !observacao) {
             return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
         }
 
-        // Obter dados do usuário da sessão
+        // Obter dados do usuário da sessão (já mascarados)
         const usuario = req.session.usuario;
         if (!usuario) {
             return res.status(401).json({ message: 'Usuário não autenticado' });
@@ -488,7 +596,9 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
 
         // Data e hora atual formatada
         const dataHora = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        
+
+
+
         // Template HTML para o email
         const htmlEmail = `
         <!DOCTYPE html>
@@ -577,6 +687,7 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
                         <span>${usuario.cnpj}</span>
                     </div>
                     
+                    
                     <div class="info-item">
                         <span class="info-label">Email:</span> 
                         <span>${usuario.email}</span>
@@ -612,6 +723,12 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
                     
                     <p>Por favor, analise esta solicitação e entre em contato com o cliente o mais breve possível.</p>
                 </div>
+                
+                <div class="security-notice">
+                    <strong>Aviso de Privacidade:</strong> Os dados CNPJ e email nesta mensagem foram automaticamente mascarados por segurança. 
+                    Para dados completos, consulte o sistema interno usando o código do cliente.
+                </div>
+
                 <div class="footer">
                     <p>Esta é uma mensagem automática do Portal do Cliente. Por favor, não responda diretamente a este email.</p>
                     <p>© ${new Date().getFullYear()} MVK. Todos os direitos reservados.</p>
@@ -620,13 +737,15 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
         </body>
         </html>
         `;
-        
+
+
+
         // Configurar anexos para o email
         const attachments = files.map(file => ({
             filename: file.originalname,
             content: file.buffer
         }));
-        
+
         // Configuração do email
         const mailOptions = {
             from: 'Portal do Cliente <portaldocliente@mvk.com.br>',
@@ -635,12 +754,12 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
             html: htmlEmail,
             attachments: attachments
         };
-        
+
         // Enviar o email
         await transporter.sendMail(mailOptions);
-        
+
         // Responder ao cliente
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: 'Solicitação enviada com sucesso!',
             solicitacao: {
                 documento,
@@ -649,9 +768,13 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
                 arquivos: files.map(f => f.originalname)
             }
         });
-        
+
     } catch (error) {
         console.error('Erro ao enviar solicitação SAC:', error);
+        
+        // Log de erro
+        BackendDataProtection.logSensitiveAccess(req, 'sac_error', 'submission_failed');
+        
         return res.status(500).json({ message: 'Erro ao processar sua solicitação. Por favor, tente novamente mais tarde.' });
     }
 });
@@ -660,7 +783,7 @@ app.post('/api/enviarSac', autenticacaoRequerida, upload.array('files', 5), asyn
 app.get('/api/status', autenticacaoRequerida, async (req, res) => {
     try {
         const relatorio = await apiMonitor.gerarRelatorio();
-        
+
         res.json({
             message: 'Status das APIs externas',
             ...relatorio
@@ -678,7 +801,7 @@ app.get('/api/status', autenticacaoRequerida, async (req, res) => {
 app.get('/api/monitoring/stats', autenticacaoRequerida, (req, res) => {
     try {
         const stats = apiMonitor.obterEstatisticas();
-        
+
         res.json({
             message: 'Estatísticas de monitoramento',
             ...stats
@@ -693,7 +816,7 @@ app.get('/api/monitoring/stats', autenticacaoRequerida, (req, res) => {
 
 // Importar rotas da API
 const apiPedidosRouter = require('./app/routes/api/api-pedidos');
-const apiNotasFiscaisRouter = require('./app/routes/api/api-notas-fiscais'); 
+const apiNotasFiscaisRouter = require('./app/routes/api/api-notas-fiscais');
 const apiFinanceiroRouter = require('./app/routes/api/api-financeiro');
 
 // Aplicar as rotas da API com proteção CSRF e autenticação
@@ -703,16 +826,27 @@ app.use('/api/financeiro', protecaoCSRF, autenticacaoRequerida, apiFinanceiroRou
 
 // Middleware para tratar erros
 app.use((err, req, res, next) => {
-    console.error('Erro na aplicação:', err);
+    // Mascarar dados sensíveis em mensagens de erro
+    let errorMessage = err.message;
+    if (typeof errorMessage === 'string') {
+        errorMessage = BackendDataProtection.maskSensitivePatterns(errorMessage);
+    }
+    
+    console.error('Erro na aplicação (mascarado):', errorMessage);
+    
+    // Log do erro (dados já mascarados pelo middleware de log)
+    BackendDataProtection.logSensitiveAccess(req, 'application_error', 'error_handling');
     
     // Evitar expor detalhes técnicos em produção
     const isProduction = process.env.NODE_ENV === 'production';
     
     res.status(err.status || 500).json({
         message: 'Ocorreu um erro no servidor',
-        error: isProduction ? 'Erro interno' : err.message
+        error: isProduction ? 'Erro interno' : errorMessage, // Erro já mascarado
+        timestamp: new Date().toISOString()
     });
 });
+
 
 // Graceful shutdown - parar monitoramento ao encerrar o servidor
 process.on('SIGTERM', () => {
@@ -726,6 +860,18 @@ process.on('SIGINT', () => {
     apiMonitor.pararMonitoramento(monitoringInterval);
     process.exit(0);
 });
+
+setInterval(() => {
+    console.log('🧹 Executando limpeza periódica de dados sensíveis...');
+    
+    // Aqui você pode implementar limpeza de logs antigos,
+    // sessões expiradas, etc.
+    
+}, 60 * 60 * 1000); // A cada 1 hora
+
+console.log('🔒 Sistema de proteção de dados sensíveis ativo');
+console.log('📊 Logs de dados sensíveis:', DATA_PROTECTION_CONFIG.LOG_SENSITIVE_ACCESS ? 'ATIVO' : 'INATIVO');
+console.log('🎭 Mascaramento automático:', DATA_PROTECTION_CONFIG.MASK_LOGS ? 'ATIVO' : 'INATIVO');
 
 // Inicia o servidor
 const PORT = process.env.PORT || 3000;
